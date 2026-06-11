@@ -1,12 +1,12 @@
 # Examples
 
-This template ships one minimal example for each Pi package resource type.
+This repository now ships the startup picker vertical slice plus a few smoke-test commands.
 
 ## Extension
 
 `extensions/hello.ts` registers:
 
-- `/template-hello`
+- `/startup-picker:hello`
 - a small session status indicator
 
 Try it with:
@@ -18,29 +18,29 @@ pi -e .
 Then run:
 
 ```txt
-/template-hello YourName
+/startup-picker:hello YourName
 ```
 
 ## Agent Skill
 
-`skills/example-skill/SKILL.md` demonstrates a minimal Agent Skill.
+`skills/example-skill/SKILL.md` is still the template smoke skill.
 
-Replace it with your real workflow instructions.
+Replace it with a real workflow or remove it once the package ships user-facing skills.
 
 ## Prompt template
 
-`prompts/example.md` demonstrates a tiny prompt template with one variable.
+`prompts/example.md` is a placeholder prompt from the template.
 
 ## Theme
 
-`themes/example-theme.json` is a placeholder theme. Replace it or remove `themes/` if your package does not ship themes.
+`themes/example-theme.json` is a placeholder theme from the template.
 
 ## Typed custom tool
 
 `extensions/index.ts` registers:
 
-- `/template-info`
-- `template_greet` custom tool
+- `/startup-picker:about`
+- `startup_picker_greet` custom tool
 
 The tool demonstrates:
 
