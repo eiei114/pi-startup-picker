@@ -1,13 +1,13 @@
 # Examples
 
-This repository now ships the startup picker vertical slice plus a few smoke-test commands.
+This repository ships the startup-only provider/model picker vertical slice.
 
 ## Extension
 
-`extensions/hello.ts` registers:
+`extensions/index.ts` registers:
 
-- `/startup-picker:hello`
-- a small session status indicator
+- automatic startup picker on normal `session_start`
+- `/startup-picker:about`
 
 Try it with:
 
@@ -18,8 +18,20 @@ pi -e .
 Then run:
 
 ```txt
-/startup-picker:hello YourName
+/startup-picker:about
 ```
+
+On a normal Pi startup, the picker appears before the session begins.
+
+## Recent store
+
+Recent combinations are persisted to:
+
+```txt
+~/.pi/agent/pi-startup-picker-recents.json
+```
+
+The store keeps the three most recent provider/model combinations, deduped and most-recent-first. Malformed files are treated as empty and rewritten on the next successful save.
 
 ## Agent Skill
 
@@ -34,16 +46,3 @@ Replace it with a real workflow or remove it once the package ships user-facing 
 ## Theme
 
 `themes/example-theme.json` is a placeholder theme from the template.
-
-## Typed custom tool
-
-`extensions/index.ts` registers:
-
-- `/startup-picker:about`
-- `startup_picker_greet` custom tool
-
-The tool demonstrates:
-
-- TypeBox object parameters
-- a string enum schema via `StringEnum`
-- shared logic imported from `lib/greeting.ts`

@@ -14,14 +14,25 @@
 
 Pi Startup Picker is a Pi extension for power users who switch models often and want that choice up front instead of launching Pi and then detouring to `/model`.
 
-Current state: the first vertical slice is implemented. On normal startup, the extension can show a provider/model picker, remember recent combinations, and fall back to the existing default model when canceled.
+On normal startup, the extension shows a provider/model picker before the session begins, remembers your last three combinations, and falls back to your existing default provider/model when you cancel or selection fails.
 
 ## Current features
 
-- Show a provider and model picker on `session_start` for normal startup.
+- Show a provider and model picker on `session_start` for normal startup only.
 - Surface recent provider/model combinations so repeated launches are faster.
 - Fall back to the user's existing default provider/model when the picker is canceled or selection fails.
 - Persist recent combinations in a small global JSON file across launches.
+- Recover cleanly from malformed recent-store files by treating them as empty and rewriting on the next save.
+
+## Startup-only boundary
+
+This package intentionally targets normal startup only.
+
+- Runs on `session_start` when the reason is `startup`.
+- No-ops cleanly for other session reasons such as `resume`, `fork`, `reload`, and `new`.
+- Skips when UI is unavailable.
+
+See [ROADMAP.md](ROADMAP.md) for current non-goals and follow-up ideas.
 
 ## Install
 
@@ -45,23 +56,28 @@ pi -e .
 
 ## Quick start
 
-Useful smoke commands:
+Useful smoke command:
 
 ```txt
 /startup-picker:about
-/startup-picker:hello
 ```
 
 The main behavior is automatic on normal Pi startup.
+
+Recent combinations are stored at:
+
+```txt
+~/.pi/agent/pi-startup-picker-recents.json
+```
 
 ## Package contents
 
 | Path | Purpose |
 |---|---|
-| `extensions/` | Pi extension entrypoints and early smoke commands |
-| `lib/` | Shared TypeScript helpers |
-| `skills/` | Agent Skills |
-| `prompts/` | Prompt templates |
+| `extensions/` | Pi extension entrypoint and smoke command |
+| `lib/` | Startup picker flow and recent-store helpers |
+| `skills/` | Agent Skills placeholders from the template |
+| `prompts/` | Prompt template placeholders from the template |
 | `themes/` | Theme placeholders from the template |
 | `docs/` | Supporting docs and bootstrap notes |
 
@@ -77,8 +93,8 @@ npm run ci
 This package is set up for npm Trusted Publishing, so no `NPM_TOKEN` is required.
 
 ```bash
-npm version patch
-git push
+npm version minor
+git push --follow-tags
 ```
 
 See [`docs/release.md`](docs/release.md) for setup details.
@@ -94,6 +110,7 @@ For vulnerability reporting, see [`SECURITY.md`](SECURITY.md).
 - npm: https://www.npmjs.com/package/pi-startup-picker
 - GitHub: https://github.com/eiei114/pi-startup-picker
 - Issues: https://github.com/eiei114/pi-startup-picker/issues
+- Roadmap: [ROADMAP.md](ROADMAP.md)
 
 ## License
 

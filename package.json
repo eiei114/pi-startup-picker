@@ -1,6 +1,6 @@
 {
   "name": "pi-startup-picker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pi extension that lets power users choose provider and model at startup before the session begins.",
   "type": "module",
   "license": "MIT",
@@ -29,6 +29,7 @@
     "themes/",
     "docs/",
     "README.md",
+    "ROADMAP.md",
     "LICENSE",
     "CHANGELOG.md"
   ],
