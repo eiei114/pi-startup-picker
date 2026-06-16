@@ -78,11 +78,36 @@ test("startup picker skips non-startup reasons", async () => {
 	const model = createModel("openai", "gpt-5.4", "GPT-5.4");
 	const harness = createHarness({ models: [model] });
 
-	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "resume" }, harness.ctx, harness.options);
+	for (const reason of ["resume", "fork", "reload", "new"]) {
+		const result = await runStartupPicker(harness.pi, { type: "session_start", reason }, harness.ctx, harness.options);
 
-	assert.deepEqual(result, { action: "skipped", reason: "reason:resume" });
+		assert.deepEqual(result, { action: "skipped", reason: `reason:${reason}` });
+	}
+
 	assert.equal(harness.selectCalls.length, 0);
 	assert.equal(harness.setModelCalls.length, 0);
+});
+
+test("startup picker skips when UI is unavailable", async () => {
+	const model = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const harness = createHarness({ models: [model] });
+	harness.ctx.hasUI = false;
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.deepEqual(result, { action: "skipped", reason: "no-ui" });
+	assert.equal(harness.selectCalls.length, 0);
+});
+
+test("startup picker falls back when no models are available", async () => {
+	const harness = createHarness({ models: [] });
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "fallback");
+	assert.equal(result.reason, "no-available-models");
+	assert.equal(harness.selectCalls.length, 0);
+	assert.match(harness.notifications[0].message, /No configured models are available/);
 });
 
 test("startup picker falls back silently on cancel", async () => {
@@ -148,6 +173,52 @@ test("startup picker falls back when setModel fails", async () => {
 	assert.equal(harness.savedSelections.length, 0);
 	assert.equal(harness.notifications.length, 1);
 	assert.match(harness.notifications[0].message, /Could not switch to/);
+});
+
+test("startup picker can browse all providers from recents", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["Browse all providers", "ANTHROPIC (anthropic)", "Claude Sonnet 4 (claude-sonnet-4)"],
+		recents: [{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" }],
+		currentModel: gpt,
+	});
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "selected");
+	assert.equal(harness.selectCalls.length, 3);
+	assert.equal(harness.setModelCalls[0].provider, "anthropic");
+});
+
+test("startup picker ignores recents that are no longer available", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const harness = createHarness({
+		models: [gpt],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+		recents: [{ provider: "anthropic", modelId: "claude-sonnet-4", modelName: "Claude Sonnet 4" }],
+	});
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "selected");
+	assert.equal(harness.selectCalls.length, 2);
+	assert.equal(harness.selectCalls[0].title, "Choose a provider");
+});
+
+test("startup picker falls back when provider/model selection is cancelled", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const harness = createHarness({
+		models: [gpt],
+		selectAnswers: ["OPENAI (openai)", undefined],
+	});
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "fallback");
+	assert.equal(result.reason, "cancelled-provider-model");
+	assert.equal(harness.setModelCalls.length, 0);
 });
 
 test("startup picker keeps current model and still saves recent when selected model already matches current model", async () => {

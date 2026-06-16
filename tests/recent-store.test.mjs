@@ -6,12 +6,29 @@ import test from "node:test";
 
 const recentStore = await import("../lib/recent-store.ts");
 
-test("loadRecentCombinations returns empty list for malformed JSON", async () => {
+test("loadRecentCombinations returns empty list for malformed JSON and non-array payloads", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
 	const path = join(dir, "recents.json");
 	await writeFile(path, "not json", "utf8");
 
 	assert.deepEqual(await recentStore.loadRecentCombinations(path), []);
+
+	await writeFile(path, JSON.stringify({ provider: "openai" }), "utf8");
+	assert.deepEqual(await recentStore.loadRecentCombinations(path), []);
+});
+
+test("saveRecentCombination recovers a malformed store file on next save", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	const path = join(dir, "recents.json");
+	await writeFile(path, "{not valid json", "utf8");
+
+	const saved = await recentStore.saveRecentCombination(
+		{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" },
+		path,
+	);
+
+	assert.deepEqual(saved, [{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" }]);
+	assert.deepEqual(await recentStore.loadRecentCombinations(path), saved);
 });
 
 test("saveRecentCombination dedupes and caps to 3", async () => {

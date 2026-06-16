@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.2.0] - 2026-06-17
+
+### Added
+
+- Hardened startup-only provider/model picker flow with broader integration coverage.
+- Added startup matrix tests for no-ui skip, unavailable models, browse-from-recents, unavailable recents filtering, and provider/model cancel fallback.
+- Added malformed recent-store recovery tests, including self-heal on the next save.
+- Added [ROADMAP.md](ROADMAP.md) documenting the shipped slice, startup-only boundary, and current non-goals.
+
+### Changed
+
+- Removed template scaffold extension and greeting tool so the package reflects the shipped startup picker slice.
+- Updated README to describe startup-only behavior, fallback semantics, and non-goals consistently with the roadmap.
+
 ## [0.1.0] - 2026-06-11
 
 ### Added
