@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.2.1] - 2026-06-26
+
+### Changed
+
+- Aligned README with the current Pi extension template: canonical `Features` section, expanded install flows, and updated package contents.
+
 ## [0.2.0] - 2026-06-17
 
 ### Added

@@ -16,7 +16,9 @@ Pi Startup Picker is a Pi extension for power users who switch models often and 
 
 On normal startup, the extension shows a provider/model picker before the session begins, remembers your last three combinations, and falls back to your existing default provider/model when you cancel or selection fails.
 
-## Current features
+The package intentionally targets normal startup only: it runs on `session_start` when the reason is `startup`, no-ops cleanly for other session reasons such as `resume`, `fork`, `reload`, and `new`, and skips when UI is unavailable. See [ROADMAP.md](ROADMAP.md) for current non-goals and follow-up ideas.
+
+## Features
 
 - Show a provider and model picker on `session_start` for normal startup only.
 - Surface recent provider/model combinations so repeated launches are faster.
@@ -24,39 +26,47 @@ On normal startup, the extension shows a provider/model picker before the sessio
 - Persist recent combinations in a small global JSON file across launches.
 - Recover cleanly from malformed recent-store files by treating them as empty and rewriting on the next save.
 
-## Startup-only boundary
-
-This package intentionally targets normal startup only.
-
-- Runs on `session_start` when the reason is `startup`.
-- No-ops cleanly for other session reasons such as `resume`, `fork`, `reload`, and `new`.
-- Skips when UI is unavailable.
-
-See [ROADMAP.md](ROADMAP.md) for current non-goals and follow-up ideas.
-
 ## Install
 
-Published package:
+Install the published npm package with Pi:
 
 ```bash
 pi install npm:pi-startup-picker
 ```
 
-From GitHub:
+Pin a specific version when you want reproducible installs:
+
+```bash
+pi install npm:pi-startup-picker@0.2.1
+```
+
+Install into the current project instead of your user Pi settings:
+
+```bash
+pi install npm:pi-startup-picker -l
+```
+
+Or install from GitHub:
 
 ```bash
 pi install git:github.com/eiei114/pi-startup-picker
 ```
 
-Try locally during development:
+Try it without permanently installing:
+
+```bash
+pi -e npm:pi-startup-picker
+```
+
+## Quick start
+
+Try this package locally:
 
 ```bash
 pi -e .
 ```
 
-## Quick start
-
-Useful smoke command:
+Then run:
 
 ```txt
 /startup-picker:about
@@ -76,10 +86,10 @@ Recent combinations are stored at:
 |---|---|
 | `extensions/` | Pi extension entrypoint and smoke command |
 | `lib/` | Startup picker flow and recent-store helpers |
-| `skills/` | Agent Skills placeholders from the template |
-| `prompts/` | Prompt template placeholders from the template |
-| `themes/` | Theme placeholders from the template |
-| `docs/` | Supporting docs and bootstrap notes |
+| `docs/` | Release notes and supporting maintainer docs |
+| `skills/` | Agent Skills placeholders (Pi package manifest) |
+| `prompts/` | Prompt template placeholders (Pi package manifest) |
+| `themes/` | Theme placeholders (Pi package manifest) |
 
 ## Development
 
@@ -93,8 +103,8 @@ npm run ci
 This package is set up for npm Trusted Publishing, so no `NPM_TOKEN` is required.
 
 ```bash
-npm version minor
-git push --follow-tags
+npm version patch
+git push
 ```
 
 See [`docs/release.md`](docs/release.md) for setup details.
