@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
-## [0.2.1] - 2026-06-26
+## [0.2.1] - 2026-06-25
 
 ### Changed
 
