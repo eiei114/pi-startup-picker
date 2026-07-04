@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
+
 All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
@@ -33,3 +37,4 @@ This project follows semantic versioning.
 - Added initial smoke commands and project notes so implementation can begin cleanly.
 - Added a startup-only provider/model picker flow with recent-combination persistence and cancel-to-default fallback.
 - Added startup flow tests and recent-store regression tests.
+
