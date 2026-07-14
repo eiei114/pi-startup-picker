@@ -118,13 +118,18 @@ Pick one, open an issue, and link it back here when started.
 
 ### S-5 · Atomic recent-store write (~30-60 min)
 
-- **Why**: `saveRecentCombination` writes the JSON file directly. A crash mid-write can leave a
-  truncated file. The store self-heals on the next load, but an atomic temp-write + rename avoids
-  the corruption window entirely.
-- **Scope**: Write to a temp file in the same directory and `rename` into place; keep the existing
-  `JSON.stringify(next, null, 2)` shape and trailing newline.
+- **Why**: `saveRecentCombination` writes the JSON file directly. A crash mid-write can let readers
+  observe a truncated destination file. The store self-heals on the next load, but a temp-write +
+  atomic `rename` removes the torn-read window at the destination path.
+- **Scope**: Write to a temp file in the same directory and `rename` it into place; keep the existing
+  `JSON.stringify(next, null, 2)` shape and trailing newline. This targets **atomicity** (readers
+  never see a partially-written destination), not power-loss durability.
 - **Acceptance criteria**:
-  - A write produces a complete, valid file even if interrupted (no partial JSON on disk after rename).
+  - Before a successful `rename`, readers of the destination path continue to see the previous valid
+    file (never a partial JSON).
+  - After a successful `rename`, the destination file is complete and valid.
+  - Do **not** imply protection across power loss, or cleanup of an interrupted temp file, unless
+    durability is explicitly added; `fsync` is only required if power-loss durability becomes a goal.
   - Existing `recent-store` tests still pass (dedupe/cap, malformed recovery, normalize).
   - `npm run ci` passes.
 
