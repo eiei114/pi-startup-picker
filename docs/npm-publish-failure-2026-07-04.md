@@ -10,7 +10,7 @@ This report records evidence for the failed `Publish to npm` GitHub Actions run:
 - Conclusion: failure
 - Created at: 2026-07-04 11:20:01 UTC
 
-No release workflow, package version, changelog, npm registry state, or release was changed for this investigation.
+The initial investigation did not change release workflow, package version, changelog, npm registry state, or release. A follow-up maintainer request then applied a workflow-only guard so a duplicate-version publish rejection can be treated as already published when the same package version is visible in npm.
 
 ## Run evidence
 
@@ -110,9 +110,13 @@ Expected duplicate-version result for the current repository state:
 
 If `npm view` prints the package version, the exact package version is already public and any `npm publish` for that version should be skipped.
 
-## Smallest safe correction options
+## Applied workflow correction
 
 Do not rerun the failed workflow for `v0.2.2`; the package is already public.
+
+The applied workflow correction keeps the existing pre-publish `npm view` guard, then also handles the remaining race at `npm publish` time. If npm rejects the publish because the same version was already published, the workflow rechecks `npm view "${name}@${version}" version`. When the registry confirms that exact version is public, the job exits successfully as an already-published duplicate instead of failing the release run. Other publish failures still fail normally.
+
+## Smallest safe correction options
 
 Small safe follow-up options, from least to most invasive:
 

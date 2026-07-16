@@ -98,4 +98,27 @@ jobs:
 
       - name: Publish to npm
         if: steps.published.outputs.skip != 'true'
-        run: npm publish --access public
+        shell: bash
+        run: |
+          name=$(node -p "require('./package.json').name")
+          version=$(node -p "require('./package.json').version")
+          log_file=$(mktemp)
+
+          set +e
+          npm publish --access public 2>&1 | tee "$log_file"
+          status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$status" -eq 0 ]; then
+            exit 0
+          fi
+
+          if grep -Fq "previously published versions: ${version}" "$log_file"; then
+            published_version=$(npm view "${name}@${version}" version 2>/dev/null || true)
+            if [ "$published_version" = "$version" ]; then
+              echo "${name}@${version} was published by another run before this publish completed; treating duplicate-version rejection as already published."
+              exit 0
+            fi
+          fi
+
+          exit "$status"
