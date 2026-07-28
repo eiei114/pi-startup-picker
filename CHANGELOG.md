@@ -1,16 +1,16 @@
 # Changelog
 
-## Unreleased
-
-### Changed
-
-- Bump package version to `0.2.3` for the next patch release.
-
-- Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
-
 All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
+
+## Unreleased
+
+## [0.2.2] - 2026-07-04
+
+### Changed
+
+- Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
 
 ## [0.2.1] - 2026-06-25
 
