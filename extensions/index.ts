@@ -10,7 +10,7 @@ export default function (pi: ExtensionAPI) {
 		description: "Show the current status for Pi Startup Picker",
 		handler: async (_args, ctx) => {
 			ctx.ui.notify(
-				"Pi Startup Picker is loaded. On normal startup it will offer a provider/model picker before the session begins.",
+				"Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.",
 				"info",
 			);
 		},

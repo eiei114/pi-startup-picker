@@ -15,14 +15,15 @@
 
 Pi Startup Picker is a Pi extension for power users who switch models often and want that choice up front instead of launching Pi and then detouring to `/model`.
 
-On normal startup, the extension shows a provider/model picker before the session begins, remembers your last three combinations, and falls back to your existing default provider/model when you cancel or selection fails.
+On normal startup, the extension shows a searchable provider/model picker before the session begins, remembers your last three combinations, and falls back to your existing default provider/model when you cancel or selection fails.
 
 The package intentionally targets normal startup only: it runs on `session_start` when the reason is `startup`, no-ops cleanly for other session reasons such as `resume`, `fork`, `reload`, and `new`, and skips when UI is unavailable. See [ROADMAP.md](ROADMAP.md) for current non-goals and follow-up ideas.
 
 ## Features
 
-- Show a provider and model picker on `session_start` for normal startup only.
-- Surface recent provider/model combinations so repeated launches are faster.
+- Show a searchable provider/model picker on `session_start` for normal startup only.
+- Type to fuzzy-filter models by provider, id, or name and narrow the list live.
+- Surface recent provider/model combinations at the top so repeated launches are faster.
 - Fall back to the user's existing default provider/model when the picker is canceled or selection fails.
 - Persist recent combinations in a small global JSON file across launches.
 - Recover cleanly from malformed recent-store files by treating them as empty and rewriting on the next save.
@@ -38,7 +39,7 @@ pi install npm:pi-startup-picker
 Pin a specific version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-startup-picker@0.2.3
+pi install npm:pi-startup-picker@0.3.0
 ```
 
 Install into the current project instead of your user Pi settings:
@@ -86,7 +87,7 @@ Recent combinations are stored at:
 | Path | Purpose |
 |---|---|
 | `extensions/` | Pi extension entrypoint and smoke command |
-| `lib/` | Startup picker flow and recent-store helpers |
+| `lib/` | Searchable startup picker, model-search helpers, and recent-store |
 | `docs/` | Release notes and supporting maintainer docs |
 | `skills/` | Agent Skills placeholders (Pi package manifest) |
 | `prompts/` | Prompt template placeholders (Pi package manifest) |

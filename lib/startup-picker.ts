@@ -6,6 +6,7 @@ import {
 	saveRecentCombination,
 	type RecentCombination,
 } from "./recent-store.ts";
+import { openSearchableModelPicker } from "./searchable-model-picker.ts";
 
 type StartupPickerAction =
 	| { action: "skipped"; reason: string }
@@ -18,6 +19,11 @@ interface StartupPickerOptions {
 	storePath?: string;
 	loadRecents?: (path: string) => Promise<RecentCombination[]>;
 	saveRecent?: (selection: RecentCombination, path: string) => Promise<RecentCombination[]>;
+	pickModel?: (
+		ctx: PickerContext,
+		models: Model<any>[],
+		recents: RecentCombination[],
+	) => Promise<Model<any> | undefined>;
 }
 
 function modelKey(model: Pick<Model<any>, "provider" | "id">): string {
@@ -116,6 +122,46 @@ async function chooseByProvider(ctx: PickerContext, models: Model<any>[]): Promi
 	return providerModels[modelIndex];
 }
 
+async function chooseWithLegacySelect(
+	ctx: PickerContext,
+	models: Model<any>[],
+	recents: RecentCombination[],
+): Promise<Model<any> | undefined> {
+	const availableByKey = new Map(models.map((model) => [modelKey(model), model]));
+
+	if (recents.length > 0) {
+		const recentChoice = await chooseFromRecents(ctx, recents, availableByKey);
+		if (recentChoice === undefined) return undefined;
+		if (recentChoice === "browse") return chooseByProvider(ctx, models);
+		return recentChoice;
+	}
+
+	return chooseByProvider(ctx, models);
+}
+
+async function chooseWithSearchablePicker(
+	ctx: PickerContext,
+	models: Model<any>[],
+	recents: RecentCombination[],
+): Promise<Model<any> | undefined> {
+	const selected = await openSearchableModelPicker(ctx.ui, {
+		models,
+		recents,
+		currentModel: ctx.model,
+		providerLabel: (provider) => providerLabel(ctx, provider),
+		modelLabel,
+	});
+
+	if (selected) return selected;
+
+	// Fall back when custom UI is unavailable (e.g. non-TUI / test harness without custom).
+	if (typeof ctx.ui.custom !== "function") {
+		return chooseWithLegacySelect(ctx, models, recents);
+	}
+
+	return undefined;
+}
+
 export async function runStartupPicker(
 	pi: Pick<ExtensionAPI, "setModel">,
 	event: SessionStartEvent,
@@ -145,18 +191,8 @@ export async function runStartupPicker(
 
 	const availableByKey = new Map(availableModels.map((model) => [modelKey(model), model]));
 	const recents = (await loadRecents(storePath)).filter((recent) => availableByKey.has(recentKey(recent)));
-
-	let selectedModel: Model<any> | undefined;
-
-	if (recents.length > 0) {
-		const recentChoice = await chooseFromRecents(ctx, recents, availableByKey);
-		if (recentChoice === undefined) {
-			return continueWithDefault(ctx, "cancelled-recent");
-		}
-		selectedModel = recentChoice === "browse" ? await chooseByProvider(ctx, availableModels) : recentChoice;
-	} else {
-		selectedModel = await chooseByProvider(ctx, availableModels);
-	}
+	const pickModel = options.pickModel ?? chooseWithSearchablePicker;
+	const selectedModel = await pickModel(ctx, availableModels, recents);
 
 	if (!selectedModel) {
 		return continueWithDefault(ctx, "cancelled-provider-model");
