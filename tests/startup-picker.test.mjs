@@ -237,3 +237,97 @@ test("startup picker keeps current model and still saves recent when selected mo
 		{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" },
 	]);
 });
+
+test("startup picker uses searchable pickModel when provided", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		currentModel: gpt,
+		recents: [{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" }],
+	});
+
+	let receivedRecents;
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, {
+		...harness.options,
+		pickModel: async (_ctx, models, recents) => {
+			receivedRecents = recents;
+			return models.find((model) => model.id === "claude-sonnet-4");
+		},
+	});
+
+	assert.equal(result.action, "selected");
+	assert.equal(harness.selectCalls.length, 0);
+	assert.equal(harness.setModelCalls[0].id, "claude-sonnet-4");
+	assert.deepEqual(receivedRecents, [{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" }]);
+});
+
+test("startup picker prefers custom searchable UI when available", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+		currentModel: gpt,
+	});
+
+	harness.ctx.ui.custom = async (factory) => {
+		const doneResults = [];
+		const done = (value) => doneResults.push(value);
+		const component = factory(
+			{ requestRender() {} },
+			{
+				fg: (_color, text) => text,
+				bold: (text) => text,
+			},
+			{},
+			done,
+		);
+
+		assert.equal(typeof component.handleInput, "function");
+		done(claude);
+		return doneResults.at(-1);
+	};
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "selected");
+	assert.equal(harness.selectCalls.length, 0);
+	assert.equal(harness.setModelCalls[0].id, "claude-sonnet-4");
+});
+
+test("startup picker falls back when custom searchable UI is cancelled", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+		currentModel: gpt,
+	});
+
+	harness.ctx.ui.custom = async (factory) => {
+		const doneResults = [];
+		const done = (value) => doneResults.push(value);
+		const component = factory(
+			{ requestRender() {} },
+			{
+				fg: (_color, text) => text,
+				bold: (text) => text,
+			},
+			{},
+			done,
+		);
+
+		assert.equal(typeof component.handleInput, "function");
+		done(undefined);
+		return doneResults.at(-1);
+	};
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "fallback");
+	assert.equal(result.reason, "cancelled-provider-model");
+	assert.equal(harness.selectCalls.length, 0);
+	assert.equal(harness.setModelCalls.length, 0);
+	assert.deepEqual(harness.notifications, []);
+});

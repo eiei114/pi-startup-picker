@@ -6,6 +6,17 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+## [0.3.0] - 2026-07-31
+
+### Added
+
+- Replace the two-stage provider/model `select` flow with a one-screen searchable startup picker (`type` to fuzzy-filter, recent combinations first).
+- Add model-search helpers and regression coverage for fuzzy filtering and recent-first ordering.
+
+### Changed
+
+- Prefer `ctx.ui.custom` searchable UI when available; keep the legacy two-stage `select` path as a fallback for non-TUI environments.
+
 ## [0.2.2] - 2026-07-04
 
 ### Changed
@@ -41,4 +52,3 @@ This project follows semantic versioning.
 - Added initial smoke commands and project notes so implementation can begin cleanly.
 - Added a startup-only provider/model picker flow with recent-combination persistence and cancel-to-default fallback.
 - Added startup flow tests and recent-store regression tests.
-
