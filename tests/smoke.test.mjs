@@ -4,6 +4,7 @@ import test from "node:test";
 
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+const roadmap = await readFile(new URL("../ROADMAP.md", import.meta.url), "utf8");
 const autoReleaseWorkflow = await readFile(new URL("../.github/workflows/auto-release.yml", import.meta.url), "utf8");
 const publishWorkflow = await readFile(new URL("../.github/workflows/publish.yml", import.meta.url), "utf8");
 
@@ -18,6 +19,12 @@ test("README pinned install example matches package version", () => {
   const pinMatch = readme.match(/pi install npm:pi-startup-picker@([\d.]+)/);
   assert.ok(pinMatch, "README should include a pinned npm install example");
   assert.equal(pinMatch[1], packageJson.version);
+});
+
+test("ROADMAP package version matches package version", () => {
+  const versionMatch = roadmap.match(/\*\*Package version\*\*: `pi-startup-picker@([\d.]+)`/);
+  assert.ok(versionMatch, "ROADMAP should declare the current package version");
+  assert.equal(versionMatch[1], packageJson.version);
 });
 
 test("package is discoverable as a Pi package", () => {
