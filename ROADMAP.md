@@ -1,6 +1,6 @@
 # ROADMAP
 
-Status: **startup-only vertical slice shipped; latest package version 0.3.0 (searchable picker)**
+Status: **startup-only vertical slice shipped; latest package version 0.3.1 (searchable picker)**
 
 This roadmap tracks current release status, short-term priorities, and a backlog of
 bounded maintenance seeds (30-90 minutes each) that the weekly maintenance seed planner
@@ -16,6 +16,7 @@ avoid intercepting non-startup session reasons.
 
 | Release | Date | Highlights |
 | --- | --- | --- |
+| 0.3.1 | 2026-08-04 | Discord community badge in README (patch release bookkeeping) |
 | 0.3.0 | 2026-07-31 | Searchable one-screen startup picker with fuzzy filter + recent-first |
 | 0.2.3 | 2026-07-20 | Patch release bookkeeping |
 | 0.2.2 | 2026-07-04 | Sponsor (Buy Me a Coffee) button + native GitHub funding link |
@@ -23,7 +24,7 @@ avoid intercepting non-startup session reasons.
 | 0.2.0 | 2026-06-17 | Hardened startup-only picker slice + ROADMAP.md |
 | 0.1.0 | 2026-06-11 | Bootstrap + initial startup picker flow |
 
-- **Package version**: `pi-startup-picker@0.3.0`
+- **Package version**: `pi-startup-picker@0.3.1`
 - **Shipped behavior**: startup-only trigger on `session_start` where `reason === "startup"`,
   no-op for other reasons (`resume`, `fork`, `reload`, `new`); skip when UI is unavailable.
 - **Open backlog**: no open issues; one open Dependabot PR (npm dev group).
