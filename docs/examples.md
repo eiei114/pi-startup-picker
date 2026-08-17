@@ -32,17 +32,3 @@ Recent combinations are persisted to:
 ```
 
 The store keeps the three most recent provider/model combinations, deduped and most-recent-first. Malformed files are treated as empty and rewritten on the next successful save.
-
-## Agent Skill
-
-`skills/example-skill/SKILL.md` is still the template smoke skill.
-
-Replace it with a real workflow or remove it once the package ships user-facing skills.
-
-## Prompt template
-
-`prompts/example.md` is a placeholder prompt from the template.
-
-## Theme
-
-`themes/example-theme.json` is a placeholder theme from the template.
