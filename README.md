@@ -91,9 +91,6 @@ Recent combinations are stored at:
 | `extensions/` | Pi extension entrypoint and smoke command |
 | `lib/` | Searchable startup picker, model-search helpers, and recent-store |
 | `docs/` | Release notes and supporting maintainer docs |
-| `skills/` | Agent Skills placeholders (Pi package manifest) |
-| `prompts/` | Prompt template placeholders (Pi package manifest) |
-| `themes/` | Theme placeholders (Pi package manifest) |
 
 ## Development
 
