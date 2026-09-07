@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -61,4 +61,33 @@ test("normalizeRecentCombinations drops invalid rows", () => {
 		]),
 		[{ provider: "openai", modelId: "gpt-5", modelName: "GPT-5" }],
 	);
+});
+
+test("saveRecentCombination removes the temp file when rename fails", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	const path = join(dir, "recents.json");
+	await writeFile(path, "[]", "utf8");
+
+	// A directory destination makes rename(temp, path) fail after a
+	// successful temp write, exercising the failure-path cleanup.
+	const destDir = join(dir, "destdir");
+	await mkdir(destDir, { recursive: true });
+
+	await assert.rejects(
+		recentStore.saveRecentCombination({ provider: "openai", modelId: "gpt-5" }, destDir),
+	);
+
+	const leftovers = (await readdir(destDir)).filter((name) => name.endsWith(".tmp"));
+	assert.deepEqual(leftovers, []);
+});
+
+test("saveRecentCombination removes the temp file when the temp write fails", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	// A NUL byte rejects the temp write before any file is created.
+	const path = join(dir, "recents.json\0");
+
+	await assert.rejects(recentStore.saveRecentCombination({ provider: "openai", modelId: "gpt-5" }, path));
+
+	const leftovers = (await readdir(dir)).filter((name) => name.endsWith(".tmp"));
+	assert.deepEqual(leftovers, []);
 });

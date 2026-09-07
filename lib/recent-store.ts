@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
@@ -68,8 +68,13 @@ export async function saveRecentCombination(
 	await mkdir(dir, { recursive: true });
 
 	const tempPath = join(dir, `.${basename(path)}.${randomBytes(6).toString("hex")}.tmp`);
-	await writeFile(tempPath, content, "utf8");
-	await rename(tempPath, path);
+	try {
+		await writeFile(tempPath, content, "utf8");
+		await rename(tempPath, path);
+	} catch (error) {
+		await unlink(tempPath).catch(() => {});
+		throw error;
+	}
 
 	return next;
 }
