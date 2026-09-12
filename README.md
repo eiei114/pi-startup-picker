@@ -91,6 +91,7 @@ Recent combinations are stored at:
 | `extensions/` | Pi extension entrypoint and smoke command |
 | `lib/` | Searchable startup picker, model-search helpers, and recent-store |
 | `docs/` | Release notes and supporting maintainer docs |
+| [`docs/examples.md`](docs/examples.md) | Copy-paste install, try-once, and local dev flows |
 
 ## Development
 

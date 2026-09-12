@@ -4,6 +4,7 @@ import test from "node:test";
 
 const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+const examples = await readFile(new URL("../docs/examples.md", import.meta.url), "utf8");
 const roadmap = await readFile(new URL("../ROADMAP.md", import.meta.url), "utf8");
 const autoReleaseWorkflow = await readFile(new URL("../.github/workflows/auto-release.yml", import.meta.url), "utf8");
 const publishWorkflow = await readFile(new URL("../.github/workflows/publish.yml", import.meta.url), "utf8");
@@ -18,6 +19,19 @@ test("package declares pi extension entrypoint only", () => {
 test("README pinned install example matches package version", () => {
   const pinMatch = readme.match(/pi install npm:pi-startup-picker@([\d.]+)/);
   assert.ok(pinMatch, "README should include a pinned npm install example");
+  assert.equal(pinMatch[1], packageJson.version);
+});
+
+test("examples doc includes npm install and local dev flows", () => {
+  assert.match(examples, /pi install npm:pi-startup-picker@([\d.]+)/);
+  assert.match(examples, /pi -e npm:pi-startup-picker/);
+  assert.match(examples, /pi -e \./);
+  assert.match(examples, /\/startup-picker:about/);
+});
+
+test("examples pinned install example matches package version", () => {
+  const pinMatch = examples.match(/pi install npm:pi-startup-picker@([\d.]+)/);
+  assert.ok(pinMatch, "docs/examples.md should include a pinned npm install example");
   assert.equal(pinMatch[1], packageJson.version);
 });
 
