@@ -110,7 +110,9 @@ test("saveRecentCombination removes the temp file when rename fails", async () =
 		recentStore.saveRecentCombination({ provider: "openai", modelId: "gpt-5" }, destDir),
 	);
 
-	const leftovers = (await readdir(destDir)).filter((name) => name.endsWith(".tmp"));
+	// saveRecentCombination writes its temp file into dirname(path), so the
+	// leak check has to scan the parent directory rather than destDir itself.
+	const leftovers = (await readdir(dir)).filter((name) => name.endsWith(".tmp"));
 	assert.deepEqual(leftovers, []);
 
 	// Atomic save must not corrupt an unrelated existing store file.
