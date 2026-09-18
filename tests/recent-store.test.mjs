@@ -29,6 +29,37 @@ test("saveRecentCombination recovers a malformed store file on next save", async
 
 	assert.deepEqual(saved, [{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" }]);
 	assert.deepEqual(await recentStore.loadRecentCombinations(path), saved);
+
+	const raw = await readFile(path, "utf8");
+	assert.equal(raw, `${JSON.stringify(saved, null, 2)}\n`);
+});
+
+test("saveRecentCombination persists pretty-printed JSON with trailing newline", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	const path = join(dir, "recents.json");
+
+	const saved = await recentStore.saveRecentCombination(
+		{ provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" },
+		path,
+	);
+
+	const raw = await readFile(path, "utf8");
+	assert.equal(raw, `${JSON.stringify(saved, null, 2)}\n`);
+	assert.deepEqual(JSON.parse(raw), saved);
+});
+
+test("saveRecentCombination leaves no temp files after successful atomic save", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	const path = join(dir, "recents.json");
+
+	await recentStore.saveRecentCombination({ provider: "openai", modelId: "gpt-5", modelName: "GPT-5" }, path);
+	await recentStore.saveRecentCombination(
+		{ provider: "anthropic", modelId: "claude-sonnet-4", modelName: "Claude Sonnet 4" },
+		path,
+	);
+
+	const leftovers = (await readdir(dir)).filter((name) => name.endsWith(".tmp"));
+	assert.deepEqual(leftovers, []);
 });
 
 test("saveRecentCombination dedupes and caps to 3", async () => {
@@ -66,7 +97,9 @@ test("normalizeRecentCombinations drops invalid rows", () => {
 test("saveRecentCombination removes the temp file when rename fails", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
 	const path = join(dir, "recents.json");
-	await writeFile(path, "[]", "utf8");
+	const initial = [{ provider: "google", modelId: "gemini-2.5-pro", modelName: "Gemini 2.5 Pro" }];
+	const initialContent = `${JSON.stringify(initial, null, 2)}\n`;
+	await writeFile(path, initialContent, "utf8");
 
 	// A directory destination makes rename(temp, path) fail after a
 	// successful temp write, exercising the failure-path cleanup.
@@ -77,8 +110,14 @@ test("saveRecentCombination removes the temp file when rename fails", async () =
 		recentStore.saveRecentCombination({ provider: "openai", modelId: "gpt-5" }, destDir),
 	);
 
-	const leftovers = (await readdir(destDir)).filter((name) => name.endsWith(".tmp"));
+	// saveRecentCombination writes its temp file into dirname(path), so the
+	// leak check has to scan the parent directory rather than destDir itself.
+	const leftovers = (await readdir(dir)).filter((name) => name.endsWith(".tmp"));
 	assert.deepEqual(leftovers, []);
+
+	// Atomic save must not corrupt an unrelated existing store file.
+	assert.equal(await readFile(path, "utf8"), initialContent);
+	assert.deepEqual(await recentStore.loadRecentCombinations(path), initial);
 });
 
 test("saveRecentCombination removes the temp file when the temp write fails", async () => {

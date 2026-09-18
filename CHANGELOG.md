@@ -6,6 +6,10 @@ This project follows semantic versioning.
 
 ## Unreleased
 
+### Added
+
+- Added recent-store regression coverage for atomic save output shape, temp-file cleanup, and recovery from malformed stores.
+
 ## [0.3.2] - 2026-08-22
 
 ### Changed
