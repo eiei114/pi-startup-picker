@@ -41,6 +41,18 @@ test("ROADMAP package version matches package version", () => {
   assert.equal(versionMatch[1], packageJson.version);
 });
 
+test("ROADMAP keeps maintenance seed structure intact", () => {
+  const seedHeadings = [...roadmap.matchAll(/^### S-\d+\b.*$/gm)];
+  assert.ok(seedHeadings.length >= 3, "ROADMAP should list at least three maintenance seeds");
+
+  for (const [index, heading] of seedHeadings.entries()) {
+    const sectionStart = heading.index;
+    const sectionEnd = seedHeadings[index + 1]?.index ?? roadmap.length;
+    const section = roadmap.slice(sectionStart, sectionEnd);
+    assert.match(section, /\(~\d+-\d+ min\)/, `${heading[0]} should include a time estimate`);
+  }
+});
+
 test("package is discoverable as a Pi package", () => {
   assert.ok(packageJson.keywords.includes("pi-package"));
 });
