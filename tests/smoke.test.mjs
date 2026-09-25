@@ -47,7 +47,10 @@ test("ROADMAP keeps maintenance seed structure intact", () => {
 
   for (const [index, heading] of seedHeadings.entries()) {
     const sectionStart = heading.index;
-    const sectionEnd = seedHeadings[index + 1]?.index ?? roadmap.length;
+    const headingAfterSeed = roadmap.slice(sectionStart + heading[0].length).match(/^#{1,3}\s/m);
+    const sectionEnd = headingAfterSeed
+      ? sectionStart + heading[0].length + headingAfterSeed.index
+      : roadmap.length;
     const section = roadmap.slice(sectionStart, sectionEnd);
     assert.match(section, /\(~\d+-\d+ min\)/, `${heading[0]} should include a time estimate`);
   }
