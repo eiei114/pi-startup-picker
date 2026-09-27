@@ -1,8 +1,10 @@
 # Changelog
 
-## Unreleased
+All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+This project follows semantic versioning.
+
+## Unreleased
 
 ## [0.3.7] - 2026-09-27
 
@@ -21,6 +23,22 @@ This project follows semantic versioning.
 ### Added
 
 - Added recent-store regression coverage for atomic save output shape, temp-file cleanup, and recovery from malformed stores.
+## [0.3.6] - 2026-09-28
+
+- chore: periodic patch bump after 7+ days without npm publish
+
+## [0.3.5] - 2026-09-28
+
+- chore: periodic patch bump after 7+ days without npm publish
+
+## [0.3.4] - 2026-09-28
+
+- chore: periodic patch bump after 7+ days without npm publish
+
+## [0.3.3] - 2026-09-28
+
+- chore: periodic patch bump after 7+ days without npm publish
+
 ## [0.3.2] - 2026-08-22
 
 ### Changed
