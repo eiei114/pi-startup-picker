@@ -1,26 +1,14 @@
 # Changelog
 
-## [Unreleased]
+## Unreleased
 
 ## [0.3.7] - 2026-09-27
 
 - chore: periodic patch bump after 7+ days without npm publish
 
-## 0.3.6 - 2026-09-27
 
-- chore: periodic patch bump after 7+ days without npm publish
 
-## 0.3.5 - 2026-09-27
 
-- chore: periodic patch bump after 7+ days without npm publish
-
-## 0.3.4 - 2026-09-27
-
-- chore: periodic patch bump after 7+ days without npm publish
-
-## 0.3.3 - 2026-09-27
-
-- chore: periodic patch bump after 7+ days without npm publish
 
 All notable changes to this project will be documented in this file.
 
@@ -31,13 +19,11 @@ This project follows semantic versioning.
 ### Added
 
 - Added recent-store regression coverage for atomic save output shape, temp-file cleanup, and recovery from malformed stores.
-
 ## [0.3.2] - 2026-08-22
 
 ### Changed
 
 - Merge the 2026-08-22 managed OSS dependency and maintenance PR batch.
-
 ## [0.3.0] - 2026-07-31
 
 ### Added
@@ -48,19 +34,16 @@ This project follows semantic versioning.
 ### Changed
 
 - Prefer `ctx.ui.custom` searchable UI when available; keep the legacy two-stage `select` path as a fallback for non-TUI environments.
-
 ## [0.2.2] - 2026-07-04
 
 ### Changed
 
 - Add Buy Me a Coffee sponsor button to README and native GitHub funding link via `.github/FUNDING.yml`.
-
 ## [0.2.1] - 2026-06-25
 
 ### Changed
 
 - Aligned README with the current Pi extension template: canonical `Features` section, expanded install flows, and updated package contents.
-
 ## [0.2.0] - 2026-06-17
 
 ### Added
@@ -74,7 +57,6 @@ This project follows semantic versioning.
 
 - Removed template scaffold extension and greeting tool so the package reflects the shipped startup picker slice.
 - Updated README to describe startup-only behavior, fallback semantics, and non-goals consistently with the roadmap.
-
 ## [0.1.0] - 2026-06-11
 
 ### Added
