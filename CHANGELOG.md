@@ -4,8 +4,6 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
-## Unreleased
-
 ## [0.3.7] - 2026-09-27
 
 - chore: periodic patch bump after 7+ days without npm publish
@@ -17,12 +15,6 @@ This project follows semantic versioning.
 All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
-
-## Unreleased
-
-### Added
-
-- Added recent-store regression coverage for atomic save output shape, temp-file cleanup, and recovery from malformed stores.
 ## [0.3.6] - 2026-09-28
 
 - chore: periodic patch bump after 7+ days without npm publish
@@ -82,3 +74,5 @@ This project follows semantic versioning.
 - Added initial smoke commands and project notes so implementation can begin cleanly.
 - Added a startup-only provider/model picker flow with recent-combination persistence and cancel-to-default fallback.
 - Added startup flow tests and recent-store regression tests.
+## Unreleased
+
