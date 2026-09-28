@@ -27,7 +27,7 @@ avoid intercepting non-startup session reasons.
 | 0.2.0 | 2026-06-17 | Hardened startup-only picker slice + ROADMAP.md |
 | 0.1.0 | 2026-06-11 | Bootstrap + initial startup picker flow |
 
-- **Package version**: `pi-startup-picker@0.3.2`
+- **Package version**: `pi-startup-picker@0.3.7`
 - **Shipped behavior**: startup-only trigger on `session_start` where `reason === "startup"`,
   no-op for other reasons (`resume`, `fork`, `reload`, `new`); skip when UI is unavailable.
 - **Open backlog**: no open issues and no open Dependabot PRs (as of 2026-09-05).
