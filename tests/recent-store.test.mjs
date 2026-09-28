@@ -34,6 +34,32 @@ test("saveRecentCombination recovers a malformed store file on next save", async
 	assert.equal(raw, `${JSON.stringify(saved, null, 2)}\n`);
 });
 
+test("saveRecentCombination preserves valid neighbors around malformed rows", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	const path = join(dir, "recents.json");
+	await writeFile(
+		path,
+		JSON.stringify([
+			{ provider: "openai", modelId: "gpt-5", modelName: "GPT-5" },
+			{ provider: "broken", modelId: 123 },
+			{ provider: "anthropic", modelId: "claude-sonnet-4", modelName: "Claude Sonnet 4" },
+		]),
+		"utf8",
+	);
+
+	const saved = await recentStore.saveRecentCombination(
+		{ provider: "google", modelId: "gemini-2.5-pro", modelName: "Gemini 2.5 Pro" },
+		path,
+	);
+
+	assert.deepEqual(saved, [
+		{ provider: "google", modelId: "gemini-2.5-pro", modelName: "Gemini 2.5 Pro" },
+		{ provider: "openai", modelId: "gpt-5", modelName: "GPT-5" },
+		{ provider: "anthropic", modelId: "claude-sonnet-4", modelName: "Claude Sonnet 4" },
+	]);
+	assert.deepEqual(await recentStore.loadRecentCombinations(path), saved);
+});
+
 test("saveRecentCombination persists pretty-printed JSON with trailing newline", async () => {
 	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
 	const path = join(dir, "recents.json");
