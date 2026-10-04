@@ -1,19 +1,12 @@
 import type { Model } from "@earendil-works/pi-ai";
 import { fuzzyFilter } from "@earendil-works/pi-tui";
+import { modelKey, recentKey } from "./model-identity.ts";
 import type { RecentCombination } from "./recent-store.ts";
 
 export interface SearchableModelItem {
 	model: Model<any>;
 	isRecent: boolean;
 	searchText: string;
-}
-
-function modelKey(model: Pick<Model<any>, "provider" | "id">): string {
-	return `${model.provider}/${model.id}`;
-}
-
-function recentKey(recent: Pick<RecentCombination, "provider" | "modelId">): string {
-	return `${recent.provider}/${recent.modelId}`;
 }
 
 export function buildSearchText(model: Pick<Model<any>, "provider" | "id" | "name">): string {
