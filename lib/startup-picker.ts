@@ -1,5 +1,6 @@
 import type { Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext, SessionStartEvent } from "@earendil-works/pi-coding-agent";
+import { modelKey, recentKey } from "./model-identity.ts";
 import {
 	getRecentStorePath,
 	loadRecentCombinations,
@@ -24,14 +25,6 @@ interface StartupPickerOptions {
 		models: Model<any>[],
 		recents: RecentCombination[],
 	) => Promise<Model<any> | undefined>;
-}
-
-function modelKey(model: Pick<Model<any>, "provider" | "id">): string {
-	return `${model.provider}/${model.id}`;
-}
-
-function recentKey(recent: Pick<RecentCombination, "provider" | "modelId">): string {
-	return `${recent.provider}/${recent.modelId}`;
 }
 
 function sameModel(a: Pick<Model<any>, "provider" | "id"> | undefined, b: Pick<Model<any>, "provider" | "id">): boolean {
