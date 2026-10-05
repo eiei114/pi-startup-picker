@@ -1,12 +1,12 @@
 # ROADMAP
 
-Status: **startup-only vertical slice shipped; latest package version 0.3.2 (searchable picker)**
+Status: **startup-only vertical slice shipped; latest package version 0.3.8 (searchable picker)**
 
 This roadmap tracks current release status, short-term priorities, and a backlog of
 bounded maintenance seeds (30-90 minutes each) that the weekly maintenance seed planner
 can promote into individual issues. It is a living document — update it as releases ship.
 
-Last refreshed: **2026-09-05** (DOT-1003 — re-enabled roadmap-driven seeding).
+Last refreshed: **2026-10-05** (DOT-2148 — roadmap context refresh).
 
 ## Project goal
 
@@ -18,6 +18,12 @@ avoid intercepting non-startup session reasons.
 
 | Release | Date | Highlights |
 | --- | --- | --- |
+| 0.3.8 | 2026-09-30 | Updated Pi SDK dependencies to 0.99.1 |
+| 0.3.7 | 2026-09-27 | Periodic patch release bookkeeping |
+| 0.3.6 | 2026-09-28 | Periodic patch release bookkeeping |
+| 0.3.5 | 2026-09-28 | Periodic patch release bookkeeping |
+| 0.3.4 | 2026-09-28 | Periodic patch release bookkeeping |
+| 0.3.3 | 2026-09-28 | Periodic patch release bookkeeping |
 | 0.3.2 | 2026-08-22 | Cleared template placeholder skills/prompts/themes from shipped package (S-3) |
 | 0.3.1 | 2026-08-04 | Discord community badge in README (patch release bookkeeping) |
 | 0.3.0 | 2026-07-31 | Searchable one-screen startup picker with fuzzy filter + recent-first |
@@ -30,7 +36,7 @@ avoid intercepting non-startup session reasons.
 - **Package version**: `pi-startup-picker@0.3.8`
 - **Shipped behavior**: startup-only trigger on `session_start` where `reason === "startup"`,
   no-op for other reasons (`resume`, `fork`, `reload`, `new`); skip when UI is unavailable.
-- **Open backlog**: no open issues and no open Dependabot PRs (as of 2026-09-05).
+- **Maintenance baseline**: atomic recent-store writes (S-5) and the ROADMAP structure guard (S-6) are shipped; the next candidates are S-4 and S-7 below.
 
 ## Shipped behavior recap (0.3.x line)
 
@@ -50,10 +56,10 @@ maintenance seeds in the next section.
 
 1. **Surface real status (minor or patch)** — give users a useful `/startup-picker:about`
    that reports store path, recent count, and startup-only scope (seed S-4).
-2. **Harden the store (minor)** — atomic recent-store writes to remove the torn-read window
-   (seed S-5).
-3. **Keep maintenance guardrails green (patch)** — add a ROADMAP structure smoke check and
-   triage devDependency audit noise (seeds S-6, S-7).
+2. **Keep dependency maintenance explicit (patch)** — review the current npm audit output,
+   apply only safe updates, and record any residual risk (seed S-7).
+3. **Preserve the small startup-only surface** — treat new picker behavior, `/new` support,
+   and live availability checks as separate proposals rather than implicit maintenance work.
 
 Beyond the next 1-2 releases, candidate larger work (kept out of scope here, see non-goals):
 decide whether `/new` should reuse the picker; richer recent labels or availability hints;
@@ -70,13 +76,16 @@ optional non-startup triggers after real usage feedback.
 
 | Seed | Shipped in | Notes |
 | --- | --- | --- |
+| S-6 · ROADMAP structure smoke guard | post-0.3.2 (#41, #42) | Added bounded seed-heading and time-band checks to the smoke suite |
+| S-5 · Atomic recent-store write | post-0.3.2 (#35) | Writes through a same-directory temp file and rename |
 | S-3 · Clear template placeholders | 0.3.2 (#32) | Removed placeholder skills/prompts/themes from the published tarball |
 
 ## Maintenance seeds (30-90 minutes each)
 
 Each seed is intentionally bounded so it can be promoted into a single backlog issue and
-landed in one focused session. Seeds are **not** committed work — they are vetted candidates.
-Pick one, open an issue, and link it back here when started.
+landed in one focused session. S-5 and S-6 are retained below as shipped references; S-4 and
+S-7 are the currently actionable candidates. Seeds are **not** committed work — they are
+vetted candidates. Pick one, open an issue, and link it back here when started.
 
 > Time band is an estimate for a maintainer or AI agent already familiar with the repo.
 > Every seed must keep `npm run ci` (typecheck + tests + `npm pack --dry-run`) green and must
@@ -126,9 +135,9 @@ Pick one, open an issue, and link it back here when started.
 
 ### S-7 · DevDependency audit triage (~30-60 min)
 
-- **Why**: `npm install` currently reports moderate/high vulnerabilities in transitive dev
-  dependencies. Unchecked drift makes it harder to spot regressions introduced by intentional
-  dependency bumps.
+- **Why**: As of 2026-10-05, `npm audit` reports one high transitive `brace-expansion`
+  vulnerability under the Pi coding-agent dependency. Unchecked drift makes it harder to spot
+  regressions introduced by intentional dependency bumps.
 - **Scope**: Run `npm audit`, apply safe patch/minor updates where available, document any
   accepted residual risk in a short maintainer note (e.g. `docs/repository-settings.md` or
   CHANGELOG Unreleased). Do not force major upgrades that break `npm run ci`.
@@ -141,9 +150,9 @@ Pick one, open an issue, and link it back here when started.
 
 - **Docs**: keep README pin and CHANGELOG in sync with each release.
 - **Tests**: searchable picker and startup matrix coverage is in place; keep cancel/fallback paths green.
-- **Robustness**: the recent store self-heals today but can avoid the corruption window (S-5).
+- **Robustness**: the recent store writes atomically and self-heals malformed content; keep recovery tests green.
 - **User experience**: the about command is the only user-facing surface today and is minimal (S-4).
-- **Maintenance automation**: ROADMAP structure guard (S-6) keeps seed planner inputs honest.
+- **Maintenance automation**: ROADMAP structure guard (S-6) keeps seed planner inputs honest; dependency audit review remains (S-7).
 
 ## Links
 
