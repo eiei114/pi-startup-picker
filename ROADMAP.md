@@ -43,6 +43,18 @@ avoid intercepting non-startup session reasons.
 - Integration, search, and store regression tests for the startup matrix.
 - Shipped package contains only extension + lib + docs (no template placeholder artifacts).
 
+## Roadmap review — 2026-W41
+
+The roadmap source is present and has been refreshed against the current `main` branch
+(release `0.3.1`). The next bounded maintenance candidates are:
+
+1. **S-3** — Clear template placeholders from shipped content.
+2. **S-4** — Make `/startup-picker:about` report real status.
+3. **S-5** — Atomic recent-store write hardening.
+
+These candidates are already recorded in the maintenance backlog below; no
+implementation or release action is part of this roadmap refresh.
+
 ## Short-term goals (next 1-2 releases)
 
 Keep releases small and independently shippable. Each item below maps to one or more of the
