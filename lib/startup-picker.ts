@@ -14,7 +14,7 @@ type StartupPickerAction =
 	| { action: "fallback"; reason: string }
 	| { action: "selected"; reason: string; selection: RecentCombination };
 
-type PickerContext = Pick<ExtensionContext, "hasUI" | "modelRegistry" | "ui" | "model">;
+type PickerContext = Pick<ExtensionContext, "hasUI" | "mode" | "modelRegistry" | "ui" | "model">;
 
 interface StartupPickerOptions {
 	storePath?: string;
@@ -137,6 +137,12 @@ async function chooseWithSearchablePicker(
 	models: Model<any>[],
 	recents: RecentCombination[],
 ): Promise<Model<any> | undefined> {
+	// The searchable component needs a real terminal. RPC clients support select
+	// dialogs, so use those instead of calling the no-op ui.custom implementation.
+	if (ctx.mode !== "tui") {
+		return chooseWithLegacySelect(ctx, models, recents);
+	}
+
 	const selected = await openSearchableModelPicker(ctx.ui, {
 		models,
 		recents,

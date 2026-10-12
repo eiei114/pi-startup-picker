@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.3.9] - 2026-10-12
+
+### Changed
+
+- Verify Pi SDK 1.1.0 compatibility and preserve startup model selection in RPC mode.
+
 ## [0.3.8] - 2026-09-30
 
 ### Changed

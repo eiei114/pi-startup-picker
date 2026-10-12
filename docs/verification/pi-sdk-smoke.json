@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "verification_contract": "pi-sdk-behavior-v2",
+  "sdk_versions": {
+    "@earendil-works/pi-agent-core": "1.1.0",
+    "@earendil-works/pi-ai": "1.1.0",
+    "@earendil-works/pi-coding-agent": "1.1.0",
+    "@earendil-works/pi-tui": "1.1.0"
+  },
+  "platform": "win32",
+  "model_inference": "none; an isolated offline-only model definition exercises real selection without sending inference",
+  "unhandled_errors": 0,
+  "extension_load_errors": 0,
+  "cases": [
+    {
+      "name": "extension_load",
+      "command": "npm run smoke:pi",
+      "exit_code": 0,
+      "passed": true,
+      "evidence": "{\n  \"host\": \"actual Pi RPC process using the installed coding-agent 1.1.0 CLI\",\n  \"argv\": [\n    \"--offline\",\n    \"--no-session\",\n    \"--no-tools\",\n    \"--no-extensions\",\n    \"--no-skills\",\n    \"--no-prompt-templates\",\n    \"--no-mcp\",\n    \"--no-context-files\",\n    \"-e\",\n    \".\",\n    \"--mode\",\n    \"rpc\"\n  ],\n  \"process_deadline_ms\": 15000,\n  \"cleanup_grace_ms\": 1000,\n  \"processes\": [\n    {\n      \"exit_code\": 0,\n      \"process_exited\": true,\n      \"timed_out\": false,\n      \"cleanup_timed_out\": false,\n      \"input_ended_by_harness\": true,\n      \"elapsed_ms\": 223,\n      \"rpc_ui_selections\": 0,\n      \"rpc_ui_selection_titles\": [],\n      \"rpc_input\": [\n        \"{\\\"type\\\":\\\"get_commands\\\",\\\"id\\\":\\\"smoke_1\\\"}\"\n      ],\n      \"stdout\": \"{\\\"id\\\":\\\"smoke_1\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_commands\\\",\\\"success\\\":true,\\\"data\\\":{\\\"commands\\\":[{\\\"name\\\":\\\"startup-picker:about\\\",\\\"description\\\":\\\"Show the current status for Pi Startup Picker\\\",\\\"source\\\":\\\"extension\\\",\\\"sourceInfo\\\":{\\\"path\\\":\\\"<checkout>\\\\\\\\extensions\\\\\\\\index.ts\\\",\\\"source\\\":\\\"cli\\\",\\\"scope\\\":\\\"temporary\\\",\\\"origin\\\":\\\"top-level\\\"}}]}}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"92955638-f0d0-4777-b3b5-b3d144673b99\\\",\\\"method\\\":\\\"notify\\\",\\\"message\\\":\\\"No configured models are available for the startup picker. Continuing with your default model.\\\",\\\"notifyType\\\":\\\"warning\\\"}\\n\",\n      \"stderr\": \"\"\n    }\n  ]\n}",
+      "assertions": [
+        {
+          "id": "extension_registered",
+          "expected": "Actual Pi registers startup-picker:about from the loaded extension",
+          "observed": "{\"name\":\"startup-picker:about\",\"description\":\"Show the current status for Pi Startup Picker\",\"source\":\"extension\"}",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "happy_path",
+      "command": "npm run smoke:pi",
+      "exit_code": 0,
+      "passed": true,
+      "evidence": "{\n  \"host\": \"actual Pi RPC process using the installed coding-agent 1.1.0 CLI\",\n  \"argv\": [\n    \"--offline\",\n    \"--no-session\",\n    \"--no-tools\",\n    \"--no-extensions\",\n    \"--no-skills\",\n    \"--no-prompt-templates\",\n    \"--no-mcp\",\n    \"--no-context-files\",\n    \"-e\",\n    \".\",\n    \"--mode\",\n    \"rpc\"\n  ],\n  \"process_deadline_ms\": 15000,\n  \"cleanup_grace_ms\": 1000,\n  \"processes\": [\n    {\n      \"exit_code\": 0,\n      \"process_exited\": true,\n      \"timed_out\": false,\n      \"cleanup_timed_out\": false,\n      \"input_ended_by_harness\": true,\n      \"elapsed_ms\": 275,\n      \"rpc_ui_selections\": 2,\n      \"rpc_ui_selection_titles\": [\n        \"Choose a provider\",\n        \"Choose a model\"\n      ],\n      \"rpc_input\": [\n        \"{\\\"type\\\":\\\"get_commands\\\",\\\"id\\\":\\\"smoke_1\\\"}\",\n        \"{\\\"type\\\":\\\"prompt\\\",\\\"id\\\":\\\"smoke_2\\\",\\\"message\\\":\\\"/startup-picker:about\\\"}\",\n        \"{\\\"type\\\":\\\"extension_ui_response\\\",\\\"id\\\":\\\"f5fbb372-b212-4dfb-a61f-bbe6e1491a41\\\",\\\"value\\\":\\\"offline-smoke\\\"}\",\n        \"{\\\"type\\\":\\\"get_state\\\",\\\"id\\\":\\\"smoke_3\\\"}\",\n        \"{\\\"type\\\":\\\"extension_ui_response\\\",\\\"id\\\":\\\"d6eaad11-fd08-4bd4-80f6-7412e93c4676\\\",\\\"value\\\":\\\"Offline Smoke Model (offline-smoke-model)\\\"}\",\n        \"{\\\"type\\\":\\\"get_state\\\",\\\"id\\\":\\\"smoke_4\\\"}\"\n      ],\n      \"stdout\": \"{\\\"id\\\":\\\"smoke_1\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_commands\\\",\\\"success\\\":true,\\\"data\\\":{\\\"commands\\\":[{\\\"name\\\":\\\"startup-picker:about\\\",\\\"description\\\":\\\"Show the current status for Pi Startup Picker\\\",\\\"source\\\":\\\"extension\\\",\\\"sourceInfo\\\":{\\\"path\\\":\\\"<checkout>\\\\\\\\extensions\\\\\\\\index.ts\\\",\\\"source\\\":\\\"cli\\\",\\\"scope\\\":\\\"temporary\\\",\\\"origin\\\":\\\"top-level\\\"}}]}}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"f5fbb372-b212-4dfb-a61f-bbe6e1491a41\\\",\\\"method\\\":\\\"select\\\",\\\"title\\\":\\\"Choose a provider\\\",\\\"options\\\":[\\\"offline-smoke\\\"]}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"f2f87365-d7c8-4abb-b727-349e40498895\\\",\\\"method\\\":\\\"notify\\\",\\\"message\\\":\\\"Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.\\\",\\\"notifyType\\\":\\\"info\\\"}\\n{\\\"id\\\":\\\"smoke_2\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"prompt\\\",\\\"success\\\":true,\\\"data\\\":{\\\"disposition\\\":\\\"handled\\\"}}\\n{\\\"id\\\":\\\"smoke_3\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_state\\\",\\\"success\\\":true,\\\"data\\\":{\\\"model\\\":{\\\"id\\\":\\\"offline-smoke-model\\\",\\\"name\\\":\\\"Offline Smoke Model\\\",\\\"api\\\":\\\"openai-completions\\\",\\\"provider\\\":\\\"offline-smoke\\\",\\\"baseUrl\\\":\\\"http://127.0.0.1:9/v1\\\",\\\"reasoning\\\":false,\\\"input\\\":[\\\"text\\\"],\\\"cost\\\":{\\\"input\\\":0,\\\"output\\\":0,\\\"cacheRead\\\":0,\\\"cacheWrite\\\":0},\\\"contextWindow\\\":8192,\\\"maxTokens\\\":1024},\\\"thinkingLevel\\\":\\\"off\\\",\\\"isStreaming\\\":false,\\\"isCompacting\\\":false,\\\"steeringMode\\\":\\\"one-at-a-time\\\",\\\"followUpMode\\\":\\\"one-at-a-time\\\",\\\"sessionId\\\":\\\"01a13015-f0e1-70c3-8c6e-b5f08df73b29\\\",\\\"autoCompactionEnabled\\\":true,\\\"messageCount\\\":0,\\\"pendingMessageCount\\\":0}}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"d6eaad11-fd08-4bd4-80f6-7412e93c4676\\\",\\\"method\\\":\\\"select\\\",\\\"title\\\":\\\"Choose a model\\\",\\\"options\\\":[\\\"Offline Smoke Model (offline-smoke-model)\\\"]}\\n{\\\"id\\\":\\\"smoke_4\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_state\\\",\\\"success\\\":true,\\\"data\\\":{\\\"model\\\":{\\\"id\\\":\\\"offline-smoke-model\\\",\\\"name\\\":\\\"Offline Smoke Model\\\",\\\"api\\\":\\\"openai-completions\\\",\\\"provider\\\":\\\"offline-smoke\\\",\\\"baseUrl\\\":\\\"http://127.0.0.1:9/v1\\\",\\\"reasoning\\\":false,\\\"input\\\":[\\\"text\\\"],\\\"cost\\\":{\\\"input\\\":0,\\\"output\\\":0,\\\"cacheRead\\\":0,\\\"cacheWrite\\\":0},\\\"contextWindow\\\":8192,\\\"maxTokens\\\":1024},\\\"thinkingLevel\\\":\\\"off\\\",\\\"isStreaming\\\":false,\\\"isCompacting\\\":false,\\\"steeringMode\\\":\\\"one-at-a-time\\\",\\\"followUpMode\\\":\\\"one-at-a-time\\\",\\\"sessionId\\\":\\\"01a13015-f0e1-70c3-8c6e-b5f08df73b29\\\",\\\"autoCompactionEnabled\\\":true,\\\"messageCount\\\":0,\\\"pendingMessageCount\\\":0}}\\n\",\n      \"stderr\": \"\"\n    }\n  ]\n}",
+      "assertions": [
+        {
+          "id": "feature_response",
+          "expected": "Actual Pi selects the configured offline model and handles the extension command",
+          "observed": "{\"model\":{\"id\":\"offline-smoke-model\",\"name\":\"Offline Smoke Model\",\"api\":\"openai-completions\",\"provider\":\"offline-smoke\",\"baseUrl\":\"http://127.0.0.1:9/v1\",\"reasoning\":false,\"input\":[\"text\"],\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0},\"contextWindow\":8192,\"maxTokens\":1024},\"selectionCompleted\":true,\"prompt\":{\"id\":\"smoke_2\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}},\"notification\":{\"type\":\"extension_ui_request\",\"id\":\"f2f87365-d7c8-4abb-b727-349e40498895\",\"method\":\"notify\",\"message\":\"Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.\",\"notifyType\":\"info\"}}",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "error_path",
+      "command": "npm run smoke:pi",
+      "exit_code": 0,
+      "passed": true,
+      "evidence": "{\n  \"host\": \"actual Pi RPC process using the installed coding-agent 1.1.0 CLI\",\n  \"argv\": [\n    \"--offline\",\n    \"--no-session\",\n    \"--no-tools\",\n    \"--no-extensions\",\n    \"--no-skills\",\n    \"--no-prompt-templates\",\n    \"--no-mcp\",\n    \"--no-context-files\",\n    \"-e\",\n    \".\",\n    \"--mode\",\n    \"rpc\"\n  ],\n  \"process_deadline_ms\": 15000,\n  \"cleanup_grace_ms\": 1000,\n  \"processes\": [\n    {\n      \"exit_code\": 0,\n      \"process_exited\": true,\n      \"timed_out\": false,\n      \"cleanup_timed_out\": false,\n      \"input_ended_by_harness\": true,\n      \"elapsed_ms\": 228,\n      \"rpc_ui_selections\": 0,\n      \"rpc_ui_selection_titles\": [],\n      \"rpc_input\": [\n        \"not-json\",\n        \"{\\\"type\\\":\\\"get_commands\\\",\\\"id\\\":\\\"smoke_1\\\"}\"\n      ],\n      \"stdout\": \"{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"2104fc67-cd84-44c3-822a-5f93af6a5799\\\",\\\"method\\\":\\\"notify\\\",\\\"message\\\":\\\"No configured models are available for the startup picker. Continuing with your default model.\\\",\\\"notifyType\\\":\\\"warning\\\"}\\n{\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"parse\\\",\\\"success\\\":false,\\\"error\\\":\\\"Failed to parse command: Unexpected token 'o', \\\\\\\"not-json\\\\\\\" is not valid JSON\\\"}\\n{\\\"id\\\":\\\"smoke_1\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_commands\\\",\\\"success\\\":true,\\\"data\\\":{\\\"commands\\\":[{\\\"name\\\":\\\"startup-picker:about\\\",\\\"description\\\":\\\"Show the current status for Pi Startup Picker\\\",\\\"source\\\":\\\"extension\\\",\\\"sourceInfo\\\":{\\\"path\\\":\\\"<checkout>\\\\\\\\extensions\\\\\\\\index.ts\\\",\\\"source\\\":\\\"cli\\\",\\\"scope\\\":\\\"temporary\\\",\\\"origin\\\":\\\"top-level\\\"}}]}}\\n\",\n      \"stderr\": \"\"\n    }\n  ]\n}",
+      "assertions": [
+        {
+          "id": "handled_error",
+          "expected": "Malformed RPC input returns a structured parse failure while the host remains usable",
+          "observed": "{\"parse\":{\"type\":\"response\",\"command\":\"parse\",\"success\":false,\"error\":\"Failed to parse command: Unexpected token 'o', \\\"not-json\\\" is not valid JSON\"},\"extensionRegistered\":true}",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "reload_cleanup",
+      "command": "npm run smoke:pi",
+      "exit_code": 0,
+      "passed": true,
+      "evidence": "{\n  \"host\": \"actual Pi RPC process using the installed coding-agent 1.1.0 CLI\",\n  \"argv\": [\n    \"--offline\",\n    \"--no-session\",\n    \"--no-tools\",\n    \"--no-extensions\",\n    \"--no-skills\",\n    \"--no-prompt-templates\",\n    \"--no-mcp\",\n    \"--no-context-files\",\n    \"-e\",\n    \".\",\n    \"--mode\",\n    \"rpc\"\n  ],\n  \"process_deadline_ms\": 15000,\n  \"cleanup_grace_ms\": 1000,\n  \"processes\": [\n    {\n      \"exit_code\": 0,\n      \"process_exited\": true,\n      \"timed_out\": false,\n      \"cleanup_timed_out\": false,\n      \"input_ended_by_harness\": true,\n      \"elapsed_ms\": 257,\n      \"rpc_ui_selections\": 2,\n      \"rpc_ui_selection_titles\": [\n        \"Choose a provider\",\n        \"Choose a model\"\n      ],\n      \"rpc_input\": [\n        \"{\\\"type\\\":\\\"get_commands\\\",\\\"id\\\":\\\"smoke_1\\\"}\",\n        \"{\\\"type\\\":\\\"extension_ui_response\\\",\\\"id\\\":\\\"3d9df259-3b69-4c6b-8b5e-a7dc3b6e8b89\\\",\\\"value\\\":\\\"offline-smoke\\\"}\",\n        \"{\\\"type\\\":\\\"extension_ui_response\\\",\\\"id\\\":\\\"a3c8dcfd-ea88-40d8-8ef4-bf440ca3085d\\\",\\\"value\\\":\\\"Offline Smoke Model (offline-smoke-model)\\\"}\",\n        \"{\\\"type\\\":\\\"get_state\\\",\\\"id\\\":\\\"smoke_2\\\"}\"\n      ],\n      \"stdout\": \"{\\\"id\\\":\\\"smoke_1\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_commands\\\",\\\"success\\\":true,\\\"data\\\":{\\\"commands\\\":[{\\\"name\\\":\\\"startup-picker:about\\\",\\\"description\\\":\\\"Show the current status for Pi Startup Picker\\\",\\\"source\\\":\\\"extension\\\",\\\"sourceInfo\\\":{\\\"path\\\":\\\"<checkout>\\\\\\\\extensions\\\\\\\\index.ts\\\",\\\"source\\\":\\\"cli\\\",\\\"scope\\\":\\\"temporary\\\",\\\"origin\\\":\\\"top-level\\\"}}]}}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"3d9df259-3b69-4c6b-8b5e-a7dc3b6e8b89\\\",\\\"method\\\":\\\"select\\\",\\\"title\\\":\\\"Choose a provider\\\",\\\"options\\\":[\\\"offline-smoke\\\"]}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"a3c8dcfd-ea88-40d8-8ef4-bf440ca3085d\\\",\\\"method\\\":\\\"select\\\",\\\"title\\\":\\\"Choose a model\\\",\\\"options\\\":[\\\"Offline Smoke Model (offline-smoke-model)\\\"]}\\n{\\\"id\\\":\\\"smoke_2\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_state\\\",\\\"success\\\":true,\\\"data\\\":{\\\"model\\\":{\\\"id\\\":\\\"offline-smoke-model\\\",\\\"name\\\":\\\"Offline Smoke Model\\\",\\\"api\\\":\\\"openai-completions\\\",\\\"provider\\\":\\\"offline-smoke\\\",\\\"baseUrl\\\":\\\"http://127.0.0.1:9/v1\\\",\\\"reasoning\\\":false,\\\"input\\\":[\\\"text\\\"],\\\"cost\\\":{\\\"input\\\":0,\\\"output\\\":0,\\\"cacheRead\\\":0,\\\"cacheWrite\\\":0},\\\"contextWindow\\\":8192,\\\"maxTokens\\\":1024},\\\"thinkingLevel\\\":\\\"off\\\",\\\"isStreaming\\\":false,\\\"isCompacting\\\":false,\\\"steeringMode\\\":\\\"one-at-a-time\\\",\\\"followUpMode\\\":\\\"one-at-a-time\\\",\\\"sessionId\\\":\\\"01a13015-f2c6-7694-be91-ce29cfc117ea\\\",\\\"autoCompactionEnabled\\\":true,\\\"messageCount\\\":0,\\\"pendingMessageCount\\\":0}}\\n\",\n      \"stderr\": \"\"\n    },\n    {\n      \"exit_code\": 0,\n      \"process_exited\": true,\n      \"timed_out\": false,\n      \"cleanup_timed_out\": false,\n      \"input_ended_by_harness\": true,\n      \"elapsed_ms\": 216,\n      \"rpc_ui_selections\": 1,\n      \"rpc_ui_selection_titles\": [\n        \"Choose a startup model\"\n      ],\n      \"rpc_input\": [\n        \"{\\\"type\\\":\\\"get_commands\\\",\\\"id\\\":\\\"smoke_1\\\"}\",\n        \"{\\\"type\\\":\\\"prompt\\\",\\\"id\\\":\\\"smoke_2\\\",\\\"message\\\":\\\"/startup-picker:about\\\"}\",\n        \"{\\\"type\\\":\\\"extension_ui_response\\\",\\\"id\\\":\\\"7a3c0380-8c62-448a-9092-0366856b2a60\\\",\\\"value\\\":\\\"Recent: offline-smoke -> Offline Smoke Model (offline-smoke-model)\\\"}\",\n        \"{\\\"type\\\":\\\"get_state\\\",\\\"id\\\":\\\"smoke_3\\\"}\"\n      ],\n      \"stdout\": \"{\\\"id\\\":\\\"smoke_1\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_commands\\\",\\\"success\\\":true,\\\"data\\\":{\\\"commands\\\":[{\\\"name\\\":\\\"startup-picker:about\\\",\\\"description\\\":\\\"Show the current status for Pi Startup Picker\\\",\\\"source\\\":\\\"extension\\\",\\\"sourceInfo\\\":{\\\"path\\\":\\\"<checkout>\\\\\\\\extensions\\\\\\\\index.ts\\\",\\\"source\\\":\\\"cli\\\",\\\"scope\\\":\\\"temporary\\\",\\\"origin\\\":\\\"top-level\\\"}}]}}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"7a3c0380-8c62-448a-9092-0366856b2a60\\\",\\\"method\\\":\\\"select\\\",\\\"title\\\":\\\"Choose a startup model\\\",\\\"options\\\":[\\\"Recent: offline-smoke -> Offline Smoke Model (offline-smoke-model)\\\",\\\"Browse all providers\\\"]}\\n{\\\"type\\\":\\\"extension_ui_request\\\",\\\"id\\\":\\\"e96ba2c6-f609-453b-b8ab-997579b05848\\\",\\\"method\\\":\\\"notify\\\",\\\"message\\\":\\\"Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.\\\",\\\"notifyType\\\":\\\"info\\\"}\\n{\\\"id\\\":\\\"smoke_2\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"prompt\\\",\\\"success\\\":true,\\\"data\\\":{\\\"disposition\\\":\\\"handled\\\"}}\\n{\\\"id\\\":\\\"smoke_3\\\",\\\"type\\\":\\\"response\\\",\\\"command\\\":\\\"get_state\\\",\\\"success\\\":true,\\\"data\\\":{\\\"model\\\":{\\\"id\\\":\\\"offline-smoke-model\\\",\\\"name\\\":\\\"Offline Smoke Model\\\",\\\"api\\\":\\\"openai-completions\\\",\\\"provider\\\":\\\"offline-smoke\\\",\\\"baseUrl\\\":\\\"http://127.0.0.1:9/v1\\\",\\\"reasoning\\\":false,\\\"input\\\":[\\\"text\\\"],\\\"cost\\\":{\\\"input\\\":0,\\\"output\\\":0,\\\"cacheRead\\\":0,\\\"cacheWrite\\\":0},\\\"contextWindow\\\":8192,\\\"maxTokens\\\":1024},\\\"thinkingLevel\\\":\\\"off\\\",\\\"isStreaming\\\":false,\\\"isCompacting\\\":false,\\\"steeringMode\\\":\\\"one-at-a-time\\\",\\\"followUpMode\\\":\\\"one-at-a-time\\\",\\\"sessionId\\\":\\\"01a13015-f3c6-757f-af15-de96e3d93e36\\\",\\\"autoCompactionEnabled\\\":true,\\\"messageCount\\\":0,\\\"pendingMessageCount\\\":0}}\\n\",\n      \"stderr\": \"\"\n    }\n  ]\n}",
+      "assertions": [
+        {
+          "id": "reloaded_extension_registered",
+          "expected": "The second actual Pi process registers startup-picker:about",
+          "observed": "{\"name\":\"startup-picker:about\",\"description\":\"Show the current status for Pi Startup Picker\",\"source\":\"extension\"}",
+          "passed": true
+        },
+        {
+          "id": "reloaded_feature_response",
+          "expected": "The second process selects the persisted recent model and handles the extension command",
+          "observed": "{\"model\":{\"id\":\"offline-smoke-model\",\"name\":\"Offline Smoke Model\",\"api\":\"openai-completions\",\"provider\":\"offline-smoke\",\"baseUrl\":\"http://127.0.0.1:9/v1\",\"reasoning\":false,\"input\":[\"text\"],\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0},\"contextWindow\":8192,\"maxTokens\":1024},\"selectedRecent\":true,\"prompt\":{\"id\":\"smoke_2\",\"type\":\"response\",\"command\":\"prompt\",\"success\":true,\"data\":{\"disposition\":\"handled\"}},\"notification\":{\"type\":\"extension_ui_request\",\"id\":\"e96ba2c6-f609-453b-b8ab-997579b05848\",\"method\":\"notify\",\"message\":\"Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.\",\"notifyType\":\"info\"}}",
+          "passed": true
+        },
+        {
+          "id": "clean_shutdown",
+          "expected": "The second Pi process exits zero without unhandled or extension shutdown errors",
+          "observed": "{\"processExited\":true,\"exit_code\":0,\"unhandled\":false,\"loadError\":false}",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "host_shell",
+      "command": "npm run smoke:pi",
+      "exit_code": 0,
+      "passed": true,
+      "evidence": "{\n  \"native_shell\": \"Windows PowerShell\",\n  \"argv\": [\n    \"-NoProfile\",\n    \"-NonInteractive\",\n    \"-Command\",\n    \"node <installed-pi-cli> --no-extensions --version\"\n  ],\n  \"process_deadline_ms\": 15000,\n  \"stdout\": \"1.1.0\\n\",\n  \"stderr\": \"\",\n  \"spawn_error\": null\n}",
+      "assertions": [
+        {
+          "id": "native_shell_boundary",
+          "expected": "The native host shell launches the locally pinned Pi CLI and reports its exact SDK version",
+          "observed": "{\"exit_code\":0,\"output\":\"1.1.0\",\"expectedVersion\":\"1.1.0\"}",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}
