@@ -1,12 +1,12 @@
 # ROADMAP
 
-Status: **startup-only vertical slice shipped; latest package version 0.3.2 (searchable picker)**
+Status: **startup-only vertical slice shipped; latest published package version 0.3.8 (searchable picker)**
 
 This roadmap tracks current release status, short-term priorities, and a backlog of
 bounded maintenance seeds (30-90 minutes each) that the weekly maintenance seed planner
 can promote into individual issues. It is a living document — update it as releases ship.
 
-Last refreshed: **2026-09-05** (DOT-1003 — re-enabled roadmap-driven seeding).
+Last refreshed: **2026-10-14** (DOT-2366 — clarified published and pending package versions; backlog snapshot below remains dated 2026-09-05).
 
 ## Project goal
 
@@ -18,6 +18,7 @@ avoid intercepting non-startup session reasons.
 
 | Release | Date | Highlights |
 | --- | --- | --- |
+| 0.3.8 | 2026-09-30 | Updated Pi SDK dependencies to 0.99.1 |
 | 0.3.2 | 2026-08-22 | Cleared template placeholder skills/prompts/themes from shipped package (S-3) |
 | 0.3.1 | 2026-08-04 | Discord community badge in README (patch release bookkeeping) |
 | 0.3.0 | 2026-07-31 | Searchable one-screen startup picker with fuzzy filter + recent-first |
@@ -27,7 +28,8 @@ avoid intercepting non-startup session reasons.
 | 0.2.0 | 2026-06-17 | Hardened startup-only picker slice + ROADMAP.md |
 | 0.1.0 | 2026-06-11 | Bootstrap + initial startup picker flow |
 
-- **Package version**: `pi-startup-picker@0.3.9`
+- **Latest published package version**: `pi-startup-picker@0.3.8` (confirmed on npm).
+- **Pending candidate**: `pi-startup-picker@0.3.9` in PR #62; it is not published.
 - **Shipped behavior**: startup-only trigger on `session_start` where `reason === "startup"`,
   no-op for other reasons (`resume`, `fork`, `reload`, `new`); skip when UI is unavailable.
 - **Open backlog**: no open issues and no open Dependabot PRs (as of 2026-09-05).
@@ -45,8 +47,8 @@ avoid intercepting non-startup session reasons.
 
 ## Roadmap review — 2026-W41
 
-The roadmap source is present and has been refreshed against the current `main` branch
-(release `0.3.1`). The next bounded maintenance candidates are:
+The 2026-W41 refresh was based on `main` at release `0.3.1`. The next bounded
+maintenance candidates are:
 
 1. **S-3** — Clear template placeholders from shipped content.
 2. **S-4** — Make `/startup-picker:about` report real status.

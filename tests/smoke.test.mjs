@@ -35,10 +35,15 @@ test("examples pinned install example matches package version", () => {
   assert.equal(pinMatch[1], packageJson.version);
 });
 
-test("ROADMAP package version matches package version", () => {
-  const versionMatch = roadmap.match(/\*\*Package version\*\*: `pi-startup-picker@([\d.]+)`/);
-  assert.ok(versionMatch, "ROADMAP should declare the current package version");
-  assert.equal(versionMatch[1], packageJson.version);
+test("ROADMAP distinguishes latest published version and PR candidate", () => {
+  const publishedMatch = roadmap.match(/\*\*Latest published package version\*\*: `pi-startup-picker@([\d.]+)`/);
+  assert.ok(publishedMatch, "ROADMAP should declare the latest published package version");
+  assert.ok(roadmap.includes(`| ${publishedMatch[1]} |`), "release history should include the latest published version");
+
+  const candidateMatch = roadmap.match(/\*\*Pending candidate\*\*: `pi-startup-picker@([\d.]+)` in PR #62; it is not published\./);
+  assert.ok(candidateMatch, "ROADMAP should identify the unpublished PR candidate");
+  assert.equal(candidateMatch[1], packageJson.version);
+  assert.notEqual(publishedMatch[1], candidateMatch[1]);
 });
 
 test("ROADMAP keeps maintenance seed structure intact", () => {

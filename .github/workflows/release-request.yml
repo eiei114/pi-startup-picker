@@ -1,0 +1,14 @@
+name: Release Request
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record manual request
+        run: echo "Release request submitted from $GITHUB_REF; protected release validates the source ref."

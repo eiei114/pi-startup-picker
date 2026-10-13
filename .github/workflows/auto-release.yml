@@ -1,21 +1,25 @@
-name: Release (manual)
+name: Protected Release
 
+# workflow_run executes this workflow from the default branch, not from the
+# selected ref of the unprivileged manual request workflow.
 on:
-  workflow_dispatch:
-
-permissions:
-  actions: write
-  contents: write
+  workflow_run:
+    workflows: ["Release Request"]
+    types: [completed]
 
 jobs:
   release:
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    if: github.event.workflow_run.event == 'workflow_dispatch' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository
     name: Create release for new version
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
     steps:
-      - name: Checkout
+      - name: Checkout trusted main
         uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Check for unreleased version
@@ -64,5 +68,4 @@ jobs:
         env:
           RELEASE_TAG: ${{ steps.check.outputs.tag }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run publish.yml --ref "$RELEASE_TAG" -f ref="$RELEASE_TAG"
+        run: gh workflow run publish.yml --ref "$RELEASE_TAG" -f ref="$RELEASE_TAG"

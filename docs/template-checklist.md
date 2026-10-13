@@ -111,15 +111,18 @@
 - [ ] npm Trusted Publishing を設定する
 - [ ] npm Trusted Publisher の workflow filename が `publish.yml` になっている
 - [ ] `NPM_TOKEN` を使っていないことを確認する
-- [ ] `auto-release.yml` が `main` の version bump から tag/release を作ることを確認する
+- [ ] `Release Request` を `main` から手動 dispatch した場合だけ release を作り、merge では自動 release されないことを確認する
 - [ ] `publish.yml` が `workflow_dispatch` と `release.published` に対応していることを確認する
 - [ ] 初回リリースで npm provenance が付いているか確認する
 
 ### Workflow handoff guard
 
 - [ ] `.github/workflows/auto-release.yml` exists before first release
+- [ ] `.github/workflows/release-request.yml` exists as the read-only manual entry point
 - [ ] `.github/workflows/publish.yml` exists before first release
-- [ ] `auto-release.yml` has `permissions: actions: write` and `contents: write`
+- [ ] `release-request.yml` has no write permissions
+- [ ] `auto-release.yml` uses `workflow_run` from the request, validates successful `main`-branch runs from this repository, and checks out trusted `main`
+- [ ] `auto-release.yml` scopes `actions: write` and `contents: write` to the protected release job
 - [ ] `publish.yml` has `permissions: id-token: write` for npm Trusted Publishing
 - [ ] Auto release explicitly hands off to publish: `gh workflow run publish.yml --ref "$TAG" -f ref="$TAG"`, or `publish.yml` has an equivalent `workflow_run` / `repository_dispatch` trigger
 - [ ] Do not rely only on `push.tags` or `release.published` when the tag/release is created by `GITHUB_TOKEN`; that can leave npm unchanged after merge
