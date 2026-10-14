@@ -33,6 +33,7 @@ function createHarness({
 
 	const ctx = {
 		hasUI: true,
+		mode: "tui",
 		model: currentModel,
 		modelRegistry: {
 			getAvailable: () => models,
@@ -294,6 +295,33 @@ test("startup picker prefers custom searchable UI when available", async () => {
 	assert.equal(result.action, "selected");
 	assert.equal(harness.selectCalls.length, 0);
 	assert.equal(harness.setModelCalls[0].id, "claude-sonnet-4");
+});
+
+test("startup picker uses supported selection dialogs in RPC mode", async () => {
+	const model = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const harness = createHarness({
+		models: [model],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+	});
+	harness.ctx.mode = "rpc";
+	let customCalled = false;
+	harness.ctx.ui.custom = async () => {
+		customCalled = true;
+		return undefined;
+	};
+
+	const result = await runStartupPicker(
+		harness.pi,
+		{ type: "session_start", reason: "startup" },
+		harness.ctx,
+		harness.options,
+	);
+
+	assert.equal(result.action, "selected");
+	assert.equal(result.reason, "model-selected");
+	assert.equal(customCalled, false);
+	assert.deepEqual(harness.selectCalls.map((call) => call.title), ["Choose a provider", "Choose a model"]);
+	assert.deepEqual(harness.setModelCalls, [model]);
 });
 
 test("startup picker falls back when custom searchable UI is cancelled", async () => {

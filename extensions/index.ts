@@ -3,6 +3,17 @@ import { runStartupPicker } from "../lib/startup-picker.ts";
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (event, ctx) => {
+		// Pi binds RPC input after initial session_start handlers settle. Deferring
+		// its dialogs lets the RPC client respond before the startup flow continues.
+		if (ctx.mode === "rpc") {
+			setTimeout(() => {
+				void runStartupPicker(pi, event, ctx).catch((error: unknown) => {
+					ctx.ui.notify(`Pi Startup Picker failed: ${String(error)}`, "error");
+				});
+			}, 0);
+			return;
+		}
+
 		await runStartupPicker(pi, event, ctx);
 	});
 
