@@ -29,7 +29,7 @@ const featureNotification = {
   notifyType: "info",
   message: "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.",
 };
-const base = { fullOutput: "", exit_code: 0, expectedVersion: "1.1.0", processExited: true };
+const base = { fullOutput: "", exit_code: 0, expectedVersion: "1.2.0", processExited: true };
 
 function assertions(name, responses, overrides = {}) {
   return behaviorAssertions(name, { ...base, responses, ...overrides });
@@ -77,6 +77,6 @@ test("reload assertions require second-process registration, feature response an
 });
 
 test("host shell assertion requires the exact pinned SDK version", () => {
-  assert.equal(assertions("host_shell", [], { fullOutput: "1.1.0\n" })[0].passed, true);
+  assert.equal(assertions("host_shell", [], { fullOutput: "1.2.0\n" })[0].passed, true);
   assert.equal(assertions("host_shell", [], { fullOutput: "0.99.1\n" })[0].passed, false);
 });

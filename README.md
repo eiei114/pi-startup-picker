@@ -38,10 +38,10 @@ Install the published npm package with Pi:
 pi install npm:pi-startup-picker
 ```
 
-Pin a specific version when you want reproducible installs:
+Pin the latest published version when you want reproducible installs:
 
 ```bash
-pi install npm:pi-startup-picker@0.3.9
+pi install npm:pi-startup-picker@0.3.8
 ```
 
 Install into the current project instead of your user Pi settings:
