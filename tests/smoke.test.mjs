@@ -16,12 +16,6 @@ test("package declares pi extension entrypoint only", () => {
   assert.equal(packageJson.pi.themes, undefined);
 });
 
-test("README pinned install example matches package version", () => {
-  const pinMatch = readme.match(/pi install npm:pi-startup-picker@([\d.]+)/);
-  assert.ok(pinMatch, "README should include a pinned npm install example");
-  assert.equal(pinMatch[1], packageJson.version);
-});
-
 test("examples doc includes npm install and local dev flows", () => {
   assert.match(examples, /pi install npm:pi-startup-picker@([\d.]+)/);
   assert.match(examples, /pi -e npm:pi-startup-picker/);
@@ -29,10 +23,15 @@ test("examples doc includes npm install and local dev flows", () => {
   assert.match(examples, /\/startup-picker:about/);
 });
 
-test("examples pinned install example matches package version", () => {
-  const pinMatch = examples.match(/pi install npm:pi-startup-picker@([\d.]+)/);
-  assert.ok(pinMatch, "docs/examples.md should include a pinned npm install example");
-  assert.equal(pinMatch[1], packageJson.version);
+test("pinned install examples match the latest published package version", () => {
+  const publishedMatch = roadmap.match(/\*\*Latest published package version\*\*: `pi-startup-picker@([\d.]+)`/);
+  assert.ok(publishedMatch, "ROADMAP should declare the latest published package version");
+
+  for (const [path, content] of [["README.md", readme], ["docs/examples.md", examples]]) {
+    const pinMatch = content.match(/pi install npm:pi-startup-picker@([\d.]+)/);
+    assert.ok(pinMatch, `${path} should include a pinned npm install example`);
+    assert.equal(pinMatch[1], publishedMatch[1], `${path} should pin the latest published version`);
+  }
 });
 
 test("ROADMAP distinguishes latest published version and PR candidate", () => {
