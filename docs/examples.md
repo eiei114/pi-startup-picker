@@ -13,7 +13,7 @@ pi install npm:pi-startup-picker
 Pin the current release when you want a reproducible install:
 
 ```bash
-pi install npm:pi-startup-picker@0.3.9
+pi install npm:pi-startup-picker@0.3.10
 ```
 
 Install into the current project instead of your user Pi settings:

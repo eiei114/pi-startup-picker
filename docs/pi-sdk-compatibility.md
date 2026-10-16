@@ -1,49 +1,48 @@
-# Pi SDK 1.1.0 compatibility
+# Pi SDK 1.2.0 compatibility
 
-`pi-startup-picker` is verified with this frozen development/test SDK set:
+`pi-startup-picker` is verified with these exact development/test pins:
 
-- `@earendil-works/pi-agent-core`: `1.1.0`
-- `@earendil-works/pi-ai`: `1.1.0`
-- `@earendil-works/pi-coding-agent`: `1.1.0`
-- `@earendil-works/pi-tui`: `1.1.0`
+- `@earendil-works/pi-agent-core`: `1.2.0`
+- `@earendil-works/pi-ai`: `1.2.0`
+- `@earendil-works/pi-coding-agent`: `1.2.0`
+- `@earendil-works/pi-tui`: `1.2.0`
 
-The package's published Pi peer ranges remain unchanged. Exact SDK versions are
-development/test pins only; no Pi SDK runtime dependency or package-major change
-is introduced.
+The published Pi peer dependency ranges remain `*`; the exact versions are not
+runtime dependencies.
 
-## Extension UI modes
+## API compatibility
 
-The searchable picker uses `ctx.ui.custom()` and Pi TUI components only when
-`ctx.mode === "tui"`. The Pi 1.1.0 RPC UI contract documents that `custom()`
-returns `undefined` in RPC mode, while `select()` dialogs remain supported. The
-startup picker therefore uses the provider/model `select()` flow for RPC and
-other non-TUI modes instead of mistaking the unsupported custom UI for a user
-cancellation. The normal TUI keeps its searchable picker and cancel behavior.
+The [Pi 1.2.0 release notes](https://github.com/earendil-works/pi/releases/tag/v1.2.0)
+change `before_agent_start` for extension-triggered runs: its event is now a
+`messageType` union, and the session is busy while a run starts. This extension
+uses `session_start`, not `before_agent_start`, and does not call the affected
+session methods, so it needs no migration for those changes. The release notes
+do not deprecate or remove the APIs used here: `session_start`,
+`modelRegistry`, `setModel`, `ui.select`, `ui.custom`, `DynamicBorder`, and Pi
+TUI components.
 
-For RPC startup, the extension defers the dialog until `session_start` settles;
-the actual 1.1.0 host binds RPC input afterward, so an awaited dialog inside the
-initial handler cannot receive its response.
-
-This follows the upstream Pi 1.1.0 extension/RPC UI guidance and the verified
-template baseline notes at
-[`pi-extension-template` PR #130](https://github.com/eiei114/pi-extension-template/blob/fc1286f52ca033f9f73fe7fc4af7662a9d1514a4/docs/pi-sdk-compatibility.md).
-The APIs used here (`session_start`, `modelRegistry`,
-`setModel`, `ui.select`, `ui.custom`, `DynamicBorder`, and Pi TUI components) are
-supported by 1.1.0. No deprecated API was present in this package's surface, so
-no speculative replacement was made.
+The searchable picker uses `ctx.ui.custom()` only in TUI mode. RPC and other
+non-TUI modes use supported `select()` dialogs. In RPC mode, the startup dialog
+is deferred until the initial `session_start` handler settles so the host can
+bind RPC input and receive dialog responses. These package-specific paths are
+verified in an actual Pi 1.2.0 process; no API substitutions were made
+speculatively. The verified template baseline and reusable 1.2.0 migration
+notes are in [pi-extension-template PR #131](https://github.com/eiei114/pi-extension-template/blob/4b0554151161eae665aa2cdc845a2d7df40e4781/docs/pi-sdk-compatibility.md).
 
 ## Verification
 
-Run `npm run ci`. It typechecks and tests the package, runs `npm run smoke:pi`
-against the installed local Pi CLI, and finishes with `npm pack --dry-run`.
-The smoke uses an isolated `PI_CODING_AGENT_DIR`, `PI_OFFLINE=1`, and a local
-offline-only model definition; it does not make inference requests. The real Pi
-1.1.0 process loads the extension, handles RPC selection dialogs, selects the
-configured model, exercises the about command and malformed-input path, then
-repeats feature selection from persisted recents in a second process. It also
-checks the native host shell's version output. It does not mock Pi's loader,
-extension lifecycle, RPC handling, or selection feature path.
+`npm run ci` runs typecheck, regression tests, the actual-host smoke harness
+(`npm run smoke:pi`), and `npm pack --dry-run`. The harness checks the four exact
+SDK pins, starts the installed Pi CLI with an isolated temporary agent
+directory, and exercises extension registration, startup model selection and
+the handled `/startup-picker:about` command, malformed RPC input, a second Pi
+process selecting the persisted recent model, clean process shutdown, and the
+native host-shell boundary (PowerShell on Windows, `/bin/sh` on POSIX).
 
-Machine-readable actual observations are committed in
-`docs/verification/pi-sdk-smoke.json`. The harness includes strict assertions
-for each response and regression tests proving that missing responses fail.
+The smoke uses a deterministic offline-only model definition and sends no
+inference requests. Pi's CLI, extension loader, RPC handling, lifecycle, and
+feature paths are real, not mocked. The committed observations are in
+`docs/verification/pi-sdk-smoke.json`; refresh them with
+`node scripts/pi-sdk-smoke.mjs --update-curated-report`. CI separately executes
+the same smoke harness on every pull request. Contract tests require semantic
+responses and verify that missing responses fail assertions.

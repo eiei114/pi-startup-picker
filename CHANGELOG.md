@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.3.10] - 2026-10-16
+
+### Changed
+
+- Verify compatibility with Pi SDK 1.2.0 and retain the existing public peer ranges.
+
 ## [0.3.9] - 2026-10-12
 
 ### Changed

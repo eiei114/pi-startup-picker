@@ -40,8 +40,8 @@ test("ROADMAP distinguishes latest published version and PR candidate", () => {
   assert.ok(publishedMatch, "ROADMAP should declare the latest published package version");
   assert.ok(roadmap.includes(`| ${publishedMatch[1]} |`), "release history should include the latest published version");
 
-  const candidateMatch = roadmap.match(/\*\*Pending candidate\*\*: `pi-startup-picker@([\d.]+)` in PR #62; it is not published\./);
-  assert.ok(candidateMatch, "ROADMAP should identify the unpublished PR candidate");
+  const candidateMatch = roadmap.match(/\*\*Pending candidate\*\*: `pi-startup-picker@([\d.]+)` in the current compatibility PR; it is not published\./);
+  assert.ok(candidateMatch, "ROADMAP should identify the unpublished compatibility PR candidate");
   assert.equal(candidateMatch[1], packageJson.version);
   assert.notEqual(publishedMatch[1], candidateMatch[1]);
 });
