@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.3.11] - 2026-11-02
+
+### Changed
+
+- Verify compatibility with Pi SDK 1.3.0 and make the smoke check follow the manifest pins.
+
 ## [0.3.10] - 2026-10-16
 
 ### Changed

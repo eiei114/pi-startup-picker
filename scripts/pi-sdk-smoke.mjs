@@ -26,16 +26,6 @@ const sdkVersions = Object.fromEntries(SDK_NAMES.map((name) => {
   }
   return [name, installed];
 }));
-const expectedSdkVersions = {
-  "@earendil-works/pi-agent-core": "1.2.0",
-  "@earendil-works/pi-ai": "1.2.0",
-  "@earendil-works/pi-coding-agent": "1.2.0",
-  "@earendil-works/pi-tui": "1.2.0",
-};
-if (JSON.stringify(sdkVersions) !== JSON.stringify(expectedSdkVersions)) {
-  throw new Error(`Unexpected SDK versions: ${JSON.stringify(sdkVersions)}`);
-}
-
 const codingAgentManifest = readJson(resolve(root, "node_modules/@earendil-works/pi-coding-agent/package.json"));
 const piCli = resolve(root, "node_modules/@earendil-works/pi-coding-agent", codingAgentManifest.bin.pi);
 const smokeModel = {
@@ -316,7 +306,7 @@ async function runPiCase(name, options = {}) {
     const passed = observed.exit_code === 0 && observed.processExited && !observed.timedOut
       && !observed.cleanupTimedOut && !hasUnhandledError && !hasLoadError && assertions.every((item) => item.passed);
     const evidence = JSON.stringify({
-      host: "actual Pi RPC process using the installed coding-agent 1.2.0 CLI",
+      host: `actual Pi RPC process using the installed coding-agent ${sdkVersions["@earendil-works/pi-coding-agent"]} CLI`,
       argv: ["--offline", "--no-session", "--no-tools", "--no-extensions", "--no-skills",
         "--no-prompt-templates", "--no-mcp", "--no-context-files", "-e", ".", "--mode", "rpc"],
       process_deadline_ms: PROBE_TIMEOUT_MS,
