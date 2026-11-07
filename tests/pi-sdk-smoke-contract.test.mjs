@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import { behaviorAssertions, parseJsonLines } from "../scripts/pi-sdk-smoke-contract.mjs";
 
@@ -79,4 +80,13 @@ test("reload assertions require second-process registration, feature response an
 test("host shell assertion requires the exact pinned SDK version", () => {
   assert.equal(assertions("host_shell", [], { fullOutput: "1.4.0\n" })[0].passed, true);
   assert.equal(assertions("host_shell", [], { fullOutput: "1.2.0\n" })[0].passed, false);
+});
+
+test("committed smoke report records the manifest-pinned SDK versions", () => {
+  const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  const report = JSON.parse(readFileSync(new URL("../docs/verification/pi-sdk-smoke.json", import.meta.url), "utf8"));
+  for (const [name, version] of Object.entries(report.sdk_versions)) {
+    assert.equal(version, manifest.devDependencies[name], name);
+  }
+  assert.equal(Object.keys(report.sdk_versions).length, 4);
 });

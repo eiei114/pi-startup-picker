@@ -9,6 +9,7 @@ This project follows semantic versioning.
 ### Changed
 
 - Verify compatibility with Pi SDK 1.4.0 and make the SDK smoke check follow the exact versions pinned in the manifest.
+- Refresh the committed smoke evidence and compatibility notes for Pi SDK 1.4.0, with a test that keeps the report aligned with the manifest pins.
 
 ## [0.3.10] - 2026-10-16
 
