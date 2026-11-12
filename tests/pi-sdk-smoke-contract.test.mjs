@@ -1,14 +1,24 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { behaviorAssertions, parseJsonLines } from "../scripts/pi-sdk-smoke-contract.mjs";
+import {
+  ABOUT_MESSAGE_OFF,
+  ABOUT_MESSAGE_ON,
+  behaviorAssertions,
+  parseJsonLines,
+} from "../scripts/pi-sdk-smoke-contract.mjs";
 
 const commandResponse = {
   id: "req_1",
   type: "response",
   command: "get_commands",
   success: true,
-  data: { commands: [{ name: "startup-picker:about", source: "extension" }] },
+  data: {
+    commands: [
+      { name: "startup-picker:about", source: "extension" },
+      { name: "startup-picker:settings", source: "extension" },
+    ],
+  },
 };
 const selectedModelResponse = {
   id: "req_3",
@@ -28,9 +38,16 @@ const featureNotification = {
   type: "extension_ui_request",
   method: "notify",
   notifyType: "info",
-  message: "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.",
+  message: ABOUT_MESSAGE_OFF,
 };
-const base = { fullOutput: "", exit_code: 0, expectedVersion: "1.4.0", processExited: true };
+const newSessionResponse = {
+  id: "req_4",
+  type: "response",
+  command: "new_session",
+  success: true,
+  data: { cancelled: false },
+};
+const base = { fullOutput: "", exit_code: 0, expectedVersion: "1.5.0", processExited: true };
 
 function assertions(name, responses, overrides = {}) {
   return behaviorAssertions(name, { ...base, responses, ...overrides });
@@ -42,8 +59,20 @@ test("RPC line parser ignores diagnostics and keeps complete JSON responses", ()
   ]);
 });
 
-test("extension load assertion requires the real extension command registration", () => {
+test("about messages report the exact on and off states", () => {
+  assert.match(ABOUT_MESSAGE_OFF, /Ask on \/new \(opt-in, default off\): off\.$/);
+  assert.match(ABOUT_MESSAGE_ON, /Ask on \/new \(opt-in, default off\): on\.$/);
+  assert.notEqual(ABOUT_MESSAGE_OFF, ABOUT_MESSAGE_ON);
+});
+
+test("extension load assertion requires both extension commands", () => {
   assert.equal(assertions("extension_load", [commandResponse])[0].passed, true);
+
+  const withoutSettings = {
+    ...commandResponse,
+    data: { commands: [{ name: "startup-picker:about", source: "extension" }] },
+  };
+  assert.equal(assertions("extension_load", [withoutSettings])[0].passed, false);
   assert.equal(assertions("extension_load", [])[0].passed, false);
 });
 
@@ -54,6 +83,15 @@ test("happy path requires both the selected model and handled feature response",
   assert.equal(assertions("happy_path", responses.filter((row) => row !== selectedModelResponse))[0].passed, false);
   assert.equal(assertions("happy_path", responses.filter((row) => row !== featureNotification))[0].passed, false);
   assert.equal(assertions("happy_path", responses, { selectionCompleted: false })[0].passed, false);
+
+  // The about text must report the real setting, not a stale static string.
+  const staleNotification = { ...featureNotification, message: "Pi Startup Picker is loaded." };
+  assert.equal(
+    assertions("happy_path", responses.filter((row) => row !== featureNotification).concat(staleNotification), {
+      selectionCompleted: true,
+    })[0].passed,
+    false,
+  );
 });
 
 test("error path fails when the malformed RPC response is missing or successful", () => {
@@ -77,9 +115,76 @@ test("reload assertions require second-process registration, feature response an
   assert.equal(assertions("reload_cleanup", responses, { processExited: false })[2].passed, false);
 });
 
+test("new /new assertions accept a settled session and reject stray or missing evidence", () => {
+  const noPicker = assertions("new_session_default_off", [commandResponse, newSessionResponse], {
+    newSessionTitles: [],
+    newSessionStateChecked: true,
+  });
+  assert.equal(noPicker[0].passed, true);
+
+  // A picker opening with the setting off fails the case.
+  assert.equal(
+    assertions("new_session_disabled", [commandResponse, newSessionResponse], {
+      newSessionTitles: ["Choose a provider"],
+      newSessionStateChecked: true,
+    })[0].passed,
+    false,
+  );
+
+  // Both settings-off variants share the same evidence shape.
+  assert.equal(
+    assertions("new_session_disabled", [commandResponse, newSessionResponse], {
+      newSessionTitles: [],
+      newSessionStateChecked: false,
+    })[0].passed,
+    false,
+  );
+});
+
+test("/new with the setting on requires the full provider and model picker", () => {
+  const both = assertions("new_session_enabled", [commandResponse, newSessionResponse], {
+    newSessionTitles: ["Choose a provider", "Choose a model"],
+    newSessionStateChecked: true,
+  });
+  assert.equal(both[0].passed, true);
+
+  assert.equal(
+    assertions("new_session_enabled", [commandResponse, newSessionResponse], {
+      newSessionTitles: ["Choose a provider"],
+      newSessionStateChecked: true,
+    })[0].passed,
+    false,
+  );
+  assert.equal(
+    assertions("new_session_enabled", [commandResponse, newSessionResponse], {
+      newSessionTitles: [],
+      newSessionStateChecked: true,
+    })[0].passed,
+    false,
+  );
+  assert.equal(
+    assertions("new_session_enabled", [commandResponse], {
+      newSessionTitles: ["Choose a provider", "Choose a model"],
+      newSessionStateChecked: true,
+    })[0].passed,
+    false,
+  );
+});
+
+test("new /new assertions require a non-cancelled new_session response", () => {
+  const cancelled = { ...newSessionResponse, data: { cancelled: true } };
+  assert.equal(
+    assertions("new_session_enabled", [commandResponse, cancelled], {
+      newSessionTitles: ["Choose a provider", "Choose a model"],
+      newSessionStateChecked: true,
+    })[0].passed,
+    false,
+  );
+});
+
 test("host shell assertion requires the exact pinned SDK version", () => {
-  assert.equal(assertions("host_shell", [], { fullOutput: "1.4.0\n" })[0].passed, true);
-  assert.equal(assertions("host_shell", [], { fullOutput: "1.2.0\n" })[0].passed, false);
+  assert.equal(assertions("host_shell", [], { fullOutput: "1.5.0\n" })[0].passed, true);
+  assert.equal(assertions("host_shell", [], { fullOutput: "1.4.0\n" })[0].passed, false);
 });
 
 test("committed smoke report records the manifest-pinned SDK versions", () => {

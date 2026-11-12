@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.4.0] - 2026-11-12
+
+### Added
+
+- Add an opt-in, default-off model picker on `/new`. Turn it on with
+  `/startup-picker:settings` and it reuses the existing searchable, recent-first picker when
+  `session_start` fires with reason `new`.
+- Store the setting in the user-global `pi-startup-picker-settings.json` with a
+  `showOnNewSession` boolean. Missing, malformed and non-boolean values mean off, and reading
+  never rewrites the file.
+- Show the current on/off state in `/startup-picker:about`.
+
+### Changed
+
+- On `/new`, the baseline is the model that was current before the picker opened: cancel, no UI,
+  an empty registry, an unknown recent entry and a `setModel()` failure all keep that model and
+  let `/new` continue, never the startup default fallback.
+- Save to the recent store only after a successful model switch.
+- `resume`, `fork` and `reload` still never show the picker. Normal startup behavior and its
+  cancel-to-default fallback are unchanged.
+- The SDK smoke harness now covers `/new` with the setting missing, off and on, and the committed
+  report was refreshed against an actual Pi 1.5.0 host.
+
 ## [0.3.12] - 2026-11-12
 
 ### Changed

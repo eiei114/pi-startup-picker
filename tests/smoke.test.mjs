@@ -21,6 +21,7 @@ test("examples doc includes npm install and local dev flows", () => {
   assert.match(examples, /pi -e npm:pi-startup-picker/);
   assert.match(examples, /pi -e \./);
   assert.match(examples, /\/startup-picker:about/);
+  assert.match(examples, /\/startup-picker:settings/);
 });
 
 test("pinned install examples match the latest published package version", () => {
@@ -39,8 +40,8 @@ test("ROADMAP distinguishes latest published version and PR candidate", () => {
   assert.ok(publishedMatch, "ROADMAP should declare the latest published package version");
   assert.ok(roadmap.includes(`| ${publishedMatch[1]} |`), "release history should include the latest published version");
 
-  const candidateMatch = roadmap.match(/\*\*Pending candidate\*\*: `pi-startup-picker@([\d.]+)` in the current compatibility PR; it is not published\./);
-  assert.ok(candidateMatch, "ROADMAP should identify the unpublished compatibility PR candidate");
+  const candidateMatch = roadmap.match(/\*\*Pending candidate\*\*: `pi-startup-picker@([\d.]+)`[^;]*; it is not published\./);
+  assert.ok(candidateMatch, "ROADMAP should identify the unpublished candidate");
   assert.equal(candidateMatch[1], packageJson.version);
   assert.notEqual(publishedMatch[1], candidateMatch[1]);
 });
@@ -58,6 +59,13 @@ test("ROADMAP keeps maintenance seed structure intact", () => {
     const section = roadmap.slice(sectionStart, sectionEnd);
     assert.match(section, /\(~\d+-\d+ min\)/, `${heading[0]} should include a time estimate`);
   }
+});
+
+test("README and ROADMAP document the opt-in /new picker defaulting to off", () => {
+  assert.match(readme, /\/startup-picker:settings/);
+  assert.match(readme, /default off/i);
+  assert.match(roadmap, /showOnNewSession/);
+  assert.match(roadmap, /opt-in/i);
 });
 
 test("package is discoverable as a Pi package", () => {

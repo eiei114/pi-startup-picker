@@ -1,18 +1,18 @@
 # ROADMAP
 
-Status: **startup-only vertical slice shipped; latest published package version 0.3.8 (searchable picker)**
+Status: **opt-in `/new` picker shipped in the unreleased candidate; latest published package version 0.3.8 (searchable picker)**
 
 This roadmap tracks current release status, short-term priorities, and a backlog of
 bounded maintenance seeds (30-90 minutes each) that the weekly maintenance seed planner
 can promote into individual issues. It is a living document — update it as releases ship.
 
-Last refreshed: **2026-10-14** (DOT-2366 — clarified published and pending package versions; backlog snapshot below remains dated 2026-09-05).
+Last refreshed: **2026-11-12** (DOT-3456 — opt-in `/new` picker, default off; backlog snapshot below remains dated 2026-09-05).
 
 ## Project goal
 
 Ship a thin startup picker that lets Pi power users choose provider/model **before** the
-session begins, on normal startup only. Keep the surface area small, fall back safely, and
-avoid intercepting non-startup session reasons.
+session begins, on normal startup. Keep the surface area small, fall back safely, and
+do not intercept non-startup session reasons unless the user explicitly opts in.
 
 ## Current release status
 
@@ -29,20 +29,25 @@ avoid intercepting non-startup session reasons.
 | 0.1.0 | 2026-06-11 | Bootstrap + initial startup picker flow |
 
 - **Latest published package version**: `pi-startup-picker@0.3.8` (confirmed on npm).
-- **Pending candidate**: `pi-startup-picker@0.3.12` in the current compatibility PR; it is not published.
-- **Shipped behavior**: startup-only trigger on `session_start` where `reason === "startup"`,
-  no-op for other reasons (`resume`, `fork`, `reload`, `new`); skip when UI is unavailable.
+- **Pending candidate**: `pi-startup-picker@0.4.0` for the opt-in `/new` picker; it is not published.
+- **Shipped behavior**: startup trigger on `session_start` where `reason === "startup"`, plus an
+  opt-in `/new` picker once `showOnNewSession` is turned on. `resume`, `fork` and `reload`
+  always no-op, and the extension skips when UI is unavailable.
 - **Open backlog**: no open issues and no open Dependabot PRs (as of 2026-09-05).
 
 ## Shipped behavior recap (0.3.x line)
 
-- Startup-only trigger on normal `session_start`.
+- Startup trigger on normal `session_start`, with the default provider/model fallback on cancel.
 - One-screen searchable model picker (`type` to fuzzy-filter by provider / id / name).
 - Recent 3 provider/model combinations shown first, deduped and most-recent-first.
-- Cancel or selection failure → default provider/model fallback.
+- Cancel or selection failure on startup → default provider/model fallback.
+- `/new` picker is opt-in via `/startup-picker:settings` (default off) and always keeps the model
+  that was current before it opened, so `/new` never falls back to the startup default.
+- `resume`, `fork` and `reload` never show the picker, whatever the setting.
 - Legacy two-stage `select` kept as fallback when custom TUI is unavailable.
-- Malformed recent-store recovery with empty fallback and self-heal on next save.
-- Integration, search, and store regression tests for the startup matrix.
+- Malformed recent-store recovery with empty fallback and self-heal on next save; settings reads
+  treat malformed or wrong-typed files as off and never rewrite them.
+- Integration, search, settings, and store regression tests for the startup and `/new` matrix.
 - Shipped package contains only extension + lib + docs (no template placeholder artifacts).
 
 ## Roadmap review — 2026-W41
@@ -70,14 +75,15 @@ maintenance seeds in the next section.
    triage devDependency audit noise (seeds S-6, S-7).
 
 Beyond the next 1-2 releases, candidate larger work (kept out of scope here, see non-goals):
-decide whether `/new` should reuse the picker; richer recent labels or availability hints;
-optional non-startup triggers after real usage feedback.
+richer recent labels or availability hints; optional non-startup triggers after real usage feedback.
+The `/new` picker itself is now shipped behind an opt-in setting.
 
 ## Current non-goals
 
 - Launch hub / multi-panel custom UI beyond the searchable picker.
 - Auth-aware live availability probe.
-- Interception of `/resume`, `/fork`, `/reload`, `/new`, or other non-startup session reasons.
+- Unconditional interception of `/resume`, `/fork`, `/reload`, `/new`, or other non-startup session
+  reasons. The `/new` picker only runs when the user turns it on.
 - Preset routing, policy routing, or scheduled model switching.
 
 ## Recently shipped seeds
@@ -85,6 +91,7 @@ optional non-startup triggers after real usage feedback.
 | Seed | Shipped in | Notes |
 | --- | --- | --- |
 | S-3 · Clear template placeholders | 0.3.2 (#32) | Removed placeholder skills/prompts/themes from the published tarball |
+| `/new` opt-in picker | 0.4.0 (unreleased) | "Ask on /new" setting, `/startup-picker:settings`, cancel keeps the current model |
 
 ## Maintenance seeds (30-90 minutes each)
 

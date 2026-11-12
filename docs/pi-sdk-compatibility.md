@@ -55,10 +55,17 @@ in [pi-extension-template PR #131](https://github.com/eiei114/pi-extension-templ
 `npm run ci` runs typecheck, regression tests, the actual-host smoke harness
 (`npm run smoke:pi`), and `npm pack --dry-run`. The harness checks the four exact
 SDK pins, starts the installed Pi CLI with an isolated temporary agent
-directory, and exercises extension registration, startup model selection and
-the handled `/startup-picker:about` command, malformed RPC input, a second Pi
-process selecting the persisted recent model, clean process shutdown, and the
-native host-shell boundary (PowerShell on Windows, `/bin/sh` on POSIX).
+directory, and exercises extension registration (`startup-picker:about` and
+`startup-picker:settings`), startup model selection and the handled
+`/startup-picker:about` command, malformed RPC input, a second Pi process
+selecting the persisted recent model, `/new` with the `showOnNewSession` setting
+missing, explicitly off and on, clean process shutdown, and the native
+host-shell boundary (PowerShell on Windows, `/bin/sh` on POSIX).
+
+The `/new` cases cancel the ordinary startup picker first, then drive
+`new_session` and assert on the extension UI dialogs Pi actually emits: none with
+the setting missing or off, and a provider plus model dialog pair when the setting
+is on. Every case ends with a real `get_state` read and process exit.
 
 The smoke uses a deterministic offline-only model definition and sends no
 inference requests. Pi's CLI, extension loader, RPC handling, lifecycle, and

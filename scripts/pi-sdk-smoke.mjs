@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import {
+  ABOUT_MESSAGE_OFF,
   behaviorAssertions,
   EXTENSION_LOAD_ERROR_PATTERN,
   parseJsonLines,
@@ -13,6 +14,10 @@ import {
 
 const PROBE_TIMEOUT_MS = 15_000;
 const CLEANUP_GRACE_MS = 1_000;
+/** Window the deferred `/new` handler gets to open its opt-in picker. */
+const NEW_SESSION_PICKER_WINDOW_MS = 1_500;
+/** Settling delay after the `/new` picker's final dialog before reading state. */
+const NEW_SESSION_SETTLE_MS = 150;
 const root = resolve(import.meta.dirname, "..");
 const reportPath = process.argv.includes("--update-curated-report")
   ? resolve(root, "docs/verification/pi-sdk-smoke.json")
@@ -29,6 +34,7 @@ const sdkVersions = Object.fromEntries(SDK_NAMES.map((name) => {
 
 const codingAgentManifest = readJson(resolve(root, "node_modules/@earendil-works/pi-coding-agent/package.json"));
 const piCli = resolve(root, "node_modules/@earendil-works/pi-coding-agent", codingAgentManifest.bin.pi);
+const ABOUT_MESSAGE = ABOUT_MESSAGE_OFF;
 const smokeModel = {
   id: "offline-smoke-model",
   name: "Offline Smoke Model",
@@ -54,8 +60,12 @@ function isolatedEnvironment(agentDir) {
   return env;
 }
 
-function createAgentDir(withModel) {
+function createAgentDir(withModel, showOnNewSession) {
   const agentDir = mkdtempSync(resolve(tmpdir(), "pi-startup-picker-sdk-smoke-"));
+  if (showOnNewSession !== undefined) {
+    writeFileSync(resolve(agentDir, "pi-startup-picker-settings.json"),
+      JSON.stringify({ showOnNewSession }, null, 2));
+  }
   if (withModel) {
     writeFileSync(resolve(agentDir, "models.json"), JSON.stringify({
       providers: {
@@ -86,7 +96,22 @@ function hasSavedSmokeRecent(agentDir) {
   }
 }
 
-function runPiProcess({ agentDir, withModel = false, selectRecent = false, feature = false, malformed = false }) {
+/**
+ * Runs one real Pi RPC process and drives it to a terminal observation.
+ *
+ * `/new` cases settle the ordinary startup picker first (their startup dialogs are
+ * cancelled), then send `new_session`, then wait a bounded window for the opt-in
+ * `/new` picker before reading state.
+ */
+function runPiProcess({
+  agentDir,
+  withModel = false,
+  selectRecent = false,
+  feature = false,
+  malformed = false,
+  newSession = false,
+  expectNewSessionPicker = false,
+}) {
   return new Promise((resolveResult) => {
     const startedAt = Date.now();
     const args = [piCli, "--offline", "--no-session", "--no-tools", "--no-extensions", "--no-skills",
@@ -113,6 +138,12 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
     let promptResponseSeen = false;
     let aboutNotificationSeen = false;
     let startupFallbackSeen = false;
+    let startupSettled = false;
+    let newSessionSent = false;
+    let newSessionResponseSeen = false;
+    let newSessionStateChecked = false;
+    const newSessionTitles = [];
+    let windowTimer;
     let uiSelectResponses = 0;
     const uiSelectTitles = [];
     let nextRequestId = 0;
@@ -133,10 +164,23 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
       if (closed) return;
       closed = true;
       inputEndedByHarness = true;
+      clearTimeout(windowTimer);
       child.stdin.end();
     };
+    const stateIsSelectedModel = (row) => row.success === true
+      && row.data?.model?.provider === "offline-smoke" && row.data?.model?.id === smokeModel.id;
+
     const maybeFinish = () => {
       const commandsReady = responses.some((row) => row?.type === "response" && row.command === "get_commands" && row.success);
+      if (newSession) {
+        const pickerComplete = expectNewSessionPicker
+          ? newSessionTitles.includes("Choose a model")
+          : newSessionTitles.length === 0;
+        if (newSessionResponseSeen && newSessionStateChecked && pickerComplete && !closed) {
+          finishInput();
+        }
+        return;
+      }
       if (withModel) {
         const selectionComplete = selectRecent
           ? uiSelectTitles.includes("Choose a startup model")
@@ -147,27 +191,75 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
         } else if (selectedStateSeen && selectionComplete && !closed) {
           setTimeout(maybeFinish, 25);
         }
-      } else if (commandsReady && startupFallbackSeen && (!malformed || parseErrorSeen)) {
+        return;
+      }
+      if (commandsReady && startupFallbackSeen && (!malformed || parseErrorSeen)) {
         finishInput();
       }
     };
     const requestState = () => {
-      const requiredSelections = selectRecent ? 1 : 2;
-      const readyToCheckState = feature ? promptResponseSeen : uiSelectResponses >= requiredSelections;
-      if (!withModel || !readyToCheckState || pollingState || closed) return;
+      if (!withModel || pollingState || closed) return;
+      if (feature ? !promptResponseSeen : uiSelectResponses < (selectRecent ? 1 : 2)) return;
       pollingState = true;
       sendRequest("get_state");
     };
+    const checkNewSessionState = () => {
+      if (!newSessionSent || newSessionStateChecked || pollingState || closed) return;
+      pollingState = true;
+      sendRequest("get_state");
+    };
+    const scheduleNewSessionStateCheck = (delay) => {
+      clearTimeout(windowTimer);
+      windowTimer = setTimeout(checkNewSessionState, delay);
+    };
+    const sendNewSession = () => {
+      if (newSessionSent || closed) return;
+      newSessionSent = true;
+      sendRequest("new_session");
+      // The `/new` handler is deferred in RPC mode, so the picker (if any) opens
+      // shortly after the response. Wait a bounded window before reading state, so
+      // a picker-less `/new` still lands a real observation.
+      scheduleNewSessionStateCheck(NEW_SESSION_PICKER_WINDOW_MS);
+    };
+
     const handleResponse = (row) => {
       if (row.type === "extension_ui_request" && row.method === "select" && withModel) {
+        const isNewSessionDialog = newSessionSent && !newSessionStateChecked;
+        if (newSession && !newSessionSent) {
+          // Settle the startup picker with a cancel so `/new` is exercised alone.
+          send({ type: "extension_ui_response", id: row.id, cancelled: true });
+          if (!startupSettled) {
+            startupSettled = true;
+            clearTimeout(windowTimer);
+            windowTimer = setTimeout(sendNewSession, 150);
+          }
+          return;
+        }
+
         let value;
-        if (selectRecent && row.title === "Choose a startup model") {
+        if (selectRecent && !isNewSessionDialog && row.title === "Choose a startup model") {
           value = row.options?.find((option) => option.startsWith("Recent:") && option.includes(smokeModel.id));
         } else if (row.title === "Choose a provider") {
           value = row.options?.find((option) => option.includes("offline-smoke")) ?? row.options?.[0];
         } else if (row.title === "Choose a model") {
           value = row.options?.find((option) => option.includes(smokeModel.id));
         }
+
+        if (isNewSessionDialog) {
+          newSessionTitles.push(row.title);
+          if (typeof value !== "string") {
+            send({ type: "extension_ui_response", id: row.id, cancelled: true });
+            scheduleNewSessionStateCheck(NEW_SESSION_SETTLE_MS);
+            return;
+          }
+          send({ type: "extension_ui_response", id: row.id, value });
+          // Each `/new` dialog pushes the state read later; the last one settles.
+          scheduleNewSessionStateCheck(row.title === "Choose a model"
+            ? NEW_SESSION_SETTLE_MS
+            : NEW_SESSION_PICKER_WINDOW_MS);
+          return;
+        }
+
         if (typeof value !== "string") {
           send({ type: "extension_ui_response", id: row.id, cancelled: true });
           return;
@@ -190,18 +282,24 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
         promptResponseSeen = row.success === true && row.data?.disposition === "handled";
         requestState();
       }
-      if (row.type === "extension_ui_request" && row.method === "notify"
-        && row.message === "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.") {
+      if (row.type === "extension_ui_request" && row.method === "notify" && row.message === ABOUT_MESSAGE) {
         aboutNotificationSeen = true;
       }
       if (row.type === "extension_ui_request" && row.method === "notify"
         && row.message === "No configured models are available for the startup picker. Continuing with your default model.") {
         startupFallbackSeen = true;
       }
+      if (row.type === "response" && row.command === "new_session") {
+        newSessionResponseSeen = row.success === true && row.data?.cancelled === false;
+      }
       if (row.type === "response" && row.command === "get_state") {
         pollingState = false;
-        selectedStateSeen = row.success === true && row.data?.model?.provider === "offline-smoke"
-          && row.data?.model?.id === smokeModel.id;
+        selectedStateSeen = stateIsSelectedModel(row);
+        if (newSessionSent && newSession) {
+          newSessionStateChecked = row.success === true;
+          maybeFinish();
+          return;
+        }
         if (selectedStateSeen) {
           maybeFinish();
         } else if (promptResponseSeen && !closed) {
@@ -248,9 +346,9 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
     child.once("close", (exitCode, signal) => {
       clearTimeout(deadlineTimer);
       clearTimeout(cleanupTimer);
+      clearTimeout(windowTimer);
       if (lineBuffer.trim()) handleLine(lineBuffer);
       const fullOutput = `${stdout}${stderr}`;
-      const assertions = [];
       resolveResult({
         responses,
         rpcInput,
@@ -266,7 +364,8 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
         elapsed_ms: Date.now() - startedAt,
         uiSelectResponses,
         uiSelectTitles,
-        assertions,
+        newSessionTitles,
+        newSessionStateChecked,
       });
     });
 
@@ -276,7 +375,7 @@ function runPiProcess({ agentDir, withModel = false, selectRecent = false, featu
 }
 
 async function runPiCase(name, options = {}) {
-  const agentDir = createAgentDir(options.withModel === true);
+  const agentDir = createAgentDir(options.withModel === true, options.showOnNewSession);
   try {
     const first = await runPiProcess({ agentDir, ...options });
     const transcripts = [first];
@@ -299,6 +398,8 @@ async function runPiCase(name, options = {}) {
       processExited: observed.processExited && !observed.timedOut && !observed.cleanupTimedOut,
       selectionCompleted: observed.uiSelectTitles.includes("Choose a model") && hasSavedSmokeRecent(agentDir),
       selectedRecent: observed.uiSelectTitles.includes("Choose a startup model") && hasSavedSmokeRecent(agentDir),
+      newSessionTitles: observed.newSessionTitles,
+      newSessionStateChecked: observed.newSessionStateChecked,
     });
     const hasUnhandledError = transcripts.some((item) => UNHANDLED_ERROR_PATTERN.test(item.fullOutput)
       || item.responses.some((row) => row?.type === "extension_error"));
@@ -321,6 +422,7 @@ async function runPiCase(name, options = {}) {
         elapsed_ms: item.elapsed_ms,
         rpc_ui_selections: item.uiSelectResponses,
         rpc_ui_selection_titles: item.uiSelectTitles,
+        rpc_new_session_ui_titles: item.newSessionTitles,
         rpc_input: item.rpcInput,
         stdout: sanitizeOutput(item.stdout, agentDir),
         stderr: sanitizeOutput(item.stderr, agentDir),
@@ -400,6 +502,14 @@ cases.push(await runPiCase("extension_load"));
 cases.push(await runPiCase("happy_path", { withModel: true, feature: true }));
 cases.push(await runPiCase("error_path", { malformed: true }));
 cases.push(await runPiCase("reload_cleanup", { withModel: true }));
+cases.push(await runPiCase("new_session_default_off", { withModel: true, newSession: true }));
+cases.push(await runPiCase("new_session_disabled", { withModel: true, newSession: true, showOnNewSession: false }));
+cases.push(await runPiCase("new_session_enabled", {
+  withModel: true,
+  newSession: true,
+  showOnNewSession: true,
+  expectNewSessionPicker: true,
+}));
 cases.push(runHostShell());
 
 const report = {

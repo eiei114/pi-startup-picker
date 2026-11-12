@@ -7,6 +7,12 @@ export const SDK_NAMES = [
 ];
 export const UNHANDLED_ERROR_PATTERN = /UnhandledPromiseRejection|uncaught exception|shutdown error/i;
 export const EXTENSION_LOAD_ERROR_PATTERN = /Failed to load extension|Error loading extension/i;
+/** Exact `/startup-picker:about` message with the default-off `/new` setting. */
+export const ABOUT_MESSAGE_OFF = "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins. Ask on /new (opt-in, default off): off.";
+/** Exact `/startup-picker:about` message with `showOnNewSession: true`. */
+export const ABOUT_MESSAGE_ON = "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins. Ask on /new (opt-in, default off): on.";
+export const SETTINGS_COMMAND_NAME = "startup-picker:settings";
+export const STARTUP_PICKER_WINDOW_MS = 300;
 
 export function parseJsonLines(output) {
   return output.split(/\r?\n/).flatMap((line) => {
@@ -35,6 +41,14 @@ function registeredPicker(responses) {
   return command && { name: command.name, description: command.description, source: command.source };
 }
 
+function registeredSettingsCommand(responses) {
+  const response = commandResponse(responses, "get_commands");
+  const command = response?.data?.commands?.find((row) =>
+    row.name === SETTINGS_COMMAND_NAME && row.source === "extension",
+  );
+  return command && { name: command.name, description: command.description, source: command.source };
+}
+
 function modelState(responses) {
   return responses.find((row) => row?.type === "response" && row.command === "get_state"
     && row.success === true && row.data?.model?.provider === "offline-smoke"
@@ -47,15 +61,24 @@ function aboutResponse(responses) {
     : undefined;
 }
 
-function aboutNotification(responses) {
+function aboutNotification(responses, message) {
   return responses.find((row) => row?.type === "extension_ui_request" && row.method === "notify"
     && row.notifyType === "info"
-    && row.message === "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins.");
+    && row.message === message);
 }
 
 function parseErrorResponse(responses) {
   return responses.find((row) => row?.type === "response" && row.command === "parse"
     && row.success === false && typeof row.error === "string" && row.error.length > 0);
+}
+
+function newSessionResponse(responses) {
+  return commandResponse(responses, "new_session");
+}
+
+function pickerSelections(responses) {
+  return responses.filter((row) => row?.type === "extension_ui_request" && row.method === "select"
+    && typeof row.title === "string" && /Choose a /.test(row.title)).map((row) => row.title);
 }
 
 export function behaviorAssertions(name, {
@@ -66,6 +89,8 @@ export function behaviorAssertions(name, {
   processExited,
   selectionCompleted,
   selectedRecent,
+  newSessionTitles,
+  newSessionStateChecked,
 }) {
   const hasUnhandled = UNHANDLED_ERROR_PATTERN.test(fullOutput)
     || responses.some((row) => row?.type === "extension_error");
@@ -74,13 +99,14 @@ export function behaviorAssertions(name, {
 
   if (name === "extension_load") {
     const command = registeredPicker(responses);
-    return [assertion("extension_registered", "Actual Pi registers startup-picker:about from the loaded extension",
-      command ?? null, !!command)];
+    const settings = registeredSettingsCommand(responses);
+    return [assertion("extension_registered", "Actual Pi registers startup-picker:about and startup-picker:settings from the loaded extension",
+      { about: command ?? null, settings: settings ?? null }, !!command && !!settings)];
   }
   if (name === "happy_path") {
     const selectedModel = modelState(responses);
     const handledPrompt = aboutResponse(responses);
-    const notification = aboutNotification(responses);
+    const notification = aboutNotification(responses, ABOUT_MESSAGE_OFF);
     return [assertion("feature_response", "Actual Pi selects the configured offline model and handles the extension command",
       { model: selectedModel?.data?.model ?? null, selectionCompleted: selectionCompleted === true,
         prompt: handledPrompt ?? null, notification: notification ?? null },
@@ -96,7 +122,7 @@ export function behaviorAssertions(name, {
     const command = registeredPicker(responses);
     const selectedModel = modelState(responses);
     const handledPrompt = aboutResponse(responses);
-    const notification = aboutNotification(responses);
+    const notification = aboutNotification(responses, ABOUT_MESSAGE_OFF);
     return [
       assertion("reloaded_extension_registered", "The second actual Pi process registers startup-picker:about",
         command ?? null, !!command),
@@ -108,6 +134,27 @@ export function behaviorAssertions(name, {
         { processExited: processExited === true, exit_code, unhandled: hasUnhandled, loadError: hasLoadError },
         processExited === true && exit_code === 0 && !hasUnhandled && !hasLoadError),
     ];
+  }
+  if (name === "new_session_default_off" || name === "new_session_disabled") {
+    const sessionStart = newSessionResponse(responses);
+    const titles = (newSessionTitles ?? []).filter((title) => !title.endsWith(":cancelled"));
+    const cancelled = (newSessionTitles ?? []).filter((title) => title.endsWith(":cancelled"));
+    return [assertion("new_session_without_picker",
+      "An actual Pi `/new` with the setting missing or off opens no picker and the new session stays usable",
+      { newSession: sessionStart ?? null, startupPickerTitles: pickerSelections(responses),
+        newSessionTitles: titles, newSessionCancelled: cancelled, stateChecked: newSessionStateChecked === true },
+      !!sessionStart && sessionStart.data?.cancelled === false && titles.length === 0
+        && newSessionStateChecked === true)];
+  }
+  if (name === "new_session_enabled") {
+    const sessionStart = newSessionResponse(responses);
+    const titles = (newSessionTitles ?? []).filter((title) => !title.endsWith(":cancelled"));
+    return [assertion("new_session_with_picker",
+      "An actual Pi `/new` with showOnNewSession enabled runs the searchable-flow provider/model picker and the session stays usable",
+      { newSession: sessionStart ?? null, newSessionTitles: titles, stateChecked: newSessionStateChecked === true },
+      !!sessionStart && sessionStart.data?.cancelled === false
+        && titles.includes("Choose a provider") && titles.includes("Choose a model")
+        && newSessionStateChecked === true)];
   }
   if (name === "host_shell") {
     const output = fullOutput.trim();
