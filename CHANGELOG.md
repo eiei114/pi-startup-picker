@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [0.3.12] - 2026-11-12
+
+### Changed
+
+- Update the exact development/test Pi SDK pins to 1.5.0 and record the 1.5.0
+  TypeBox-removal migration review: this extension registers no tools and
+  imports no TypeBox schemas, so the tool-argument validation change needs no
+  code migration.
+- Refresh the compatibility notes and the committed SDK smoke evidence for
+  Pi SDK 1.5.0 (extension load, happy path, error path, reload/cleanup and the
+  native host-shell boundary), all re-run against an actual Pi 1.5.0 host.
+
 ## [0.3.11] - 2026-11-07
 
 ### Changed
