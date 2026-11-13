@@ -19,16 +19,21 @@ Pi Startup Picker is a Pi extension for power users who switch models often and 
 
 On normal startup, the extension shows a searchable provider/model picker before the session begins, remembers your last three combinations, and falls back to your existing default provider/model when you cancel or selection fails.
 
-The package intentionally targets normal startup only: it runs on `session_start` when the reason is `startup`, no-ops cleanly for other session reasons such as `resume`, `fork`, `reload`, and `new`, and skips when UI is unavailable. See [ROADMAP.md](ROADMAP.md) for current non-goals and follow-up ideas.
+`/new` can show the same picker, but only after you opt in with `/startup-picker:settings`. The setting is off by default, so `/new` behaves exactly as it did before unless you turn it on. When it is on, the baseline for `/new` is the model that was current before the picker opened: cancelling, an empty registry, an unknown recent entry, or a failed model switch all keep that model and never fall back to the startup default.
+
+`resume`, `fork` and `reload` never show the picker, whatever the setting, and the extension skips when UI is unavailable. See [ROADMAP.md](ROADMAP.md) for current non-goals and follow-up ideas.
 
 ## Features
 
 - Show a searchable provider/model picker on `session_start` for normal startup only.
+- Opt in to the same picker on `/new` with `/startup-picker:settings`; default off.
 - Type to fuzzy-filter models by provider, id, or name and narrow the list live.
 - Surface recent provider/model combinations at the top so repeated launches are faster.
-- Fall back to the user's existing default provider/model when the picker is canceled or selection fails.
-- Persist recent combinations in a small global JSON file across launches.
+- Fall back to the user's existing default provider/model when the startup picker is canceled or selection fails.
+- Keep the pre-picker current model on `/new` for every non-selection outcome, so `/new` always continues.
+- Persist recent combinations in a small global JSON file across launches, and only after a successful model switch.
 - Recover cleanly from malformed recent-store files by treating them as empty and rewriting on the next save.
+- Treat a missing, malformed or wrong-typed settings file as off without throwing, and never rewrite it on read.
 
 ## Install
 
@@ -76,20 +81,40 @@ Then run:
 /startup-picker:about
 ```
 
-The main behavior is automatic on normal Pi startup.
-
-Recent combinations are stored at:
+The main behavior is automatic on normal Pi startup. Recent combinations are stored at:
 
 ```txt
 ~/.pi/agent/pi-startup-picker-recents.json
 ```
+
+## Opt-in picker on `/new`
+
+`/new` keeps Pi's normal behavior until you turn the picker on:
+
+```txt
+/startup-picker:settings
+```
+
+Select `Ask on /new: on`. Cancelling the dialog keeps the current value, and a failed write is reported as an error instead of being shown as saved. `/startup-picker:about` always reports the current on/off state. The setting lives next to the recent store:
+
+```txt
+~/.pi/agent/pi-startup-picker-settings.json
+```
+
+```json
+{
+  "showOnNewSession": true
+}
+```
+
+A missing, malformed or non-boolean value counts as `false`; the file is never rewritten just by reading it.
 
 ## Package contents
 
 | Path | Purpose |
 |---|---|
 | `extensions/` | Pi extension entrypoint and smoke command |
-| `lib/` | Searchable startup picker, model-search helpers, and recent-store |
+| `lib/` | Searchable startup picker, model-search helpers, recent-store, and `/new` settings |
 | `docs/` | Release notes and supporting maintainer docs |
 | [`docs/examples.md`](docs/examples.md) | Copy-paste install, try-once, and local dev flows |
 

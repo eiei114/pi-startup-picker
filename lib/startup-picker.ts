@@ -8,10 +8,12 @@ import {
 	type RecentCombination,
 } from "./recent-store.ts";
 import { openSearchableModelPicker } from "./searchable-model-picker.ts";
+import { getSettingsStorePath, loadPickerSettings, type PickerSettings } from "./settings-store.ts";
 
 type StartupPickerAction =
 	| { action: "skipped"; reason: string }
 	| { action: "fallback"; reason: string }
+	| { action: "kept-current"; reason: string }
 	| { action: "selected"; reason: string; selection: RecentCombination };
 
 type PickerContext = Pick<ExtensionContext, "hasUI" | "mode" | "modelRegistry" | "ui" | "model">;
@@ -20,11 +22,49 @@ interface StartupPickerOptions {
 	storePath?: string;
 	loadRecents?: (path: string) => Promise<RecentCombination[]>;
 	saveRecent?: (selection: RecentCombination, path: string) => Promise<RecentCombination[]>;
+	settingsPath?: string;
+	loadSettings?: (path: string) => Promise<PickerSettings>;
 	pickModel?: (
 		ctx: PickerContext,
 		models: Model<any>[],
 		recents: RecentCombination[],
 	) => Promise<Model<any> | undefined>;
+}
+
+function notifySafely(ctx: PickerContext, message: string, type: "info" | "warning" | "error"): void {
+	try {
+		ctx.ui.notify(message, type);
+	} catch {
+		// A session replacement can invalidate the captured ctx. The model switch this
+		// notice describes already happened, so the notice stays best-effort.
+	}
+}
+
+/**
+ * The recent store is written after the model is already active, so a failure there
+ * must not surface as a "could not offer the picker / continuing with your current
+ * model" error. It gets its own notice and leaves the selection in place.
+ */
+async function saveRecentAfterActivation(
+	ctx: PickerContext,
+	selectedModel: Pick<Model<any>, "provider" | "id" | "name">,
+	selection: RecentCombination,
+	saveRecent: (selection: RecentCombination, path: string) => Promise<RecentCombination[]>,
+	storePath: string,
+): Promise<boolean> {
+	try {
+		await saveRecent(selection, storePath);
+		return true;
+	} catch (error) {
+		// Labels come from the selected model and selection only: the captured ctx may
+		// already be stale, and a modelRegistry access would throw here again.
+		notifySafely(
+			ctx,
+			`Selected ${selectedModel.provider} -> ${modelLabel(selectedModel)} is active but its recent entry was not saved: ${String(error)}.`,
+			"warning",
+		);
+		return false;
+	}
 }
 
 function sameModel(a: Pick<Model<any>, "provider" | "id"> | undefined, b: Pick<Model<any>, "provider" | "id">): boolean {
@@ -46,6 +86,11 @@ function selectionFromModel(model: Pick<Model<any>, "provider" | "id" | "name">)
 		modelId: model.id,
 		modelName: model.name,
 	};
+}
+
+function currentModelLabel(ctx: PickerContext): string {
+	if (!ctx.model) return "your current model";
+	return `${providerLabel(ctx, ctx.model.provider)} -> ${modelLabel(ctx.model)}`;
 }
 
 async function continueWithDefault(
@@ -161,14 +206,38 @@ async function chooseWithSearchablePicker(
 	return undefined;
 }
 
+/**
+ * `/new` keeps the model that was current when the picker opened. Every non-selection
+ * outcome returns to that baseline instead of the startup default fallback.
+ */
+function keepCurrentForNew(ctx: PickerContext, reason: string, notice?: string): StartupPickerAction {
+	if (notice) {
+		ctx.ui.notify(notice, "warning");
+	}
+
+	return { action: "kept-current", reason };
+}
+
 export async function runStartupPicker(
 	pi: Pick<ExtensionAPI, "setModel">,
 	event: SessionStartEvent,
 	ctx: PickerContext,
 	options: StartupPickerOptions = {},
 ): Promise<StartupPickerAction> {
-	if (event.reason !== "startup") {
+	if (event.reason === "resume" || event.reason === "fork" || event.reason === "reload") {
 		return { action: "skipped", reason: `reason:${event.reason}` };
+	}
+
+	const isNewSession = event.reason === "new";
+
+	if (isNewSession) {
+		const settingsPath = options.settingsPath ?? getSettingsStorePath();
+		const loadSettings = options.loadSettings ?? loadPickerSettings;
+		const settings = await loadSettings(settingsPath);
+
+		if (!settings.showOnNewSession) {
+			return { action: "skipped", reason: "new-session-disabled" };
+		}
 	}
 
 	if (!ctx.hasUI) {
@@ -181,6 +250,14 @@ export async function runStartupPicker(
 	const availableModels = ctx.modelRegistry.getAvailable();
 
 	if (availableModels.length === 0) {
+		if (isNewSession) {
+			return keepCurrentForNew(
+				ctx,
+				"no-available-models",
+				`No configured models are available for the /new picker. Continuing /new with ${currentModelLabel(ctx)}.`,
+			);
+		}
+
 		return continueWithDefault(
 			ctx,
 			"no-available-models",
@@ -194,18 +271,42 @@ export async function runStartupPicker(
 	const selectedModel = await pickModel(ctx, availableModels, recents);
 
 	if (!selectedModel) {
+		if (isNewSession) {
+			return keepCurrentForNew(ctx, "cancelled-provider-model");
+		}
+
 		return continueWithDefault(ctx, "cancelled-provider-model");
 	}
 
 	const selection = selectionFromModel(selectedModel);
 
 	if (sameModel(ctx.model, selectedModel)) {
-		await saveRecent(selection, storePath);
+		// The model is unchanged, so the recent store is only touched when a
+		// selection actually switched the model.
+		if (isNewSession) {
+			return { action: "kept-current", reason: "already-current-model" };
+		}
+
+		await saveRecentAfterActivation(ctx, selectedModel, selection, saveRecent, storePath);
 		return { action: "selected", reason: "already-current-model", selection };
 	}
 
-	const changed = await pi.setModel(selectedModel);
+	let changed = false;
+	try {
+		changed = await pi.setModel(selectedModel);
+	} catch {
+		changed = false;
+	}
+
 	if (!changed) {
+		if (isNewSession) {
+			return keepCurrentForNew(
+				ctx,
+				"set-model-failed",
+				`Could not switch to ${providerLabel(ctx, selectedModel.provider)} -> ${modelLabel(selectedModel)}. Continuing /new with ${currentModelLabel(ctx)}.`,
+			);
+		}
+
 		return continueWithDefault(
 			ctx,
 			"set-model-failed",
@@ -213,7 +314,11 @@ export async function runStartupPicker(
 		);
 	}
 
-	await saveRecent(selection, storePath);
+	const recentSaved = await saveRecentAfterActivation(ctx, selectedModel, selection, saveRecent, storePath);
 
-	return { action: "selected", reason: "model-selected", selection };
+	return {
+		action: "selected",
+		reason: recentSaved ? "model-selected" : "model-selected-recent-save-failed",
+		selection,
+	};
 }
