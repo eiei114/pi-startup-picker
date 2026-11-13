@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import {
   ABOUT_MESSAGE_OFF,
   behaviorAssertions,
+  classifySelectDialog,
   EXTENSION_LOAD_ERROR_PATTERN,
   parseJsonLines,
   SDK_NAMES,
@@ -16,6 +17,17 @@ const PROBE_TIMEOUT_MS = 15_000;
 const CLEANUP_GRACE_MS = 1_000;
 /** Window the deferred `/new` handler gets to open its opt-in picker. */
 const NEW_SESSION_PICKER_WINDOW_MS = 1_500;
+/**
+ * A real Pi opens the `/new` picker well inside the window, so the late-dialog path
+ * would otherwise stay unexercised. `--new-session-window-ms=<n>` shortens the window
+ * so the state read can happen before the dialog arrives.
+ */
+function newSessionWindowMs() {
+  const arg = process.argv.find((value) => value.startsWith("--new-session-window-ms="));
+  const parsed = arg === undefined ? Number.NaN : Number.parseInt(arg.slice("--new-session-window-ms=".length), 10);
+  return Number.isFinite(parsed) ? parsed : NEW_SESSION_PICKER_WINDOW_MS;
+}
+const lateDialogWindowMs = newSessionWindowMs();
 /** Settling delay after the `/new` picker's final dialog before reading state. */
 const NEW_SESSION_SETTLE_MS = 150;
 const root = resolve(import.meta.dirname, "..");
@@ -219,12 +231,17 @@ function runPiProcess({
       // The `/new` handler is deferred in RPC mode, so the picker (if any) opens
       // shortly after the response. Wait a bounded window before reading state, so
       // a picker-less `/new` still lands a real observation.
-      scheduleNewSessionStateCheck(NEW_SESSION_PICKER_WINDOW_MS);
+      scheduleNewSessionStateCheck(lateDialogWindowMs);
     };
 
     const handleResponse = (row) => {
       if (row.type === "extension_ui_request" && row.method === "select" && withModel) {
-        const isNewSessionDialog = newSessionSent && !newSessionStateChecked;
+        // A `/new` case settles its startup picker before sending `new_session`, so
+        // every later dialog belongs to the `/new` flow even when the deferred
+        // handler opens it after the bounded window.
+        const dialogClass = classifySelectDialog({ newSessionSent, newSessionStateChecked });
+        const isNewSessionDialog = dialogClass.kind === "new-session";
+        if (dialogClass.invalidatesStateCheck) newSessionStateChecked = false;
         if (newSession && !newSessionSent) {
           // Settle the startup picker with a cancel so `/new` is exercised alone.
           send({ type: "extension_ui_response", id: row.id, cancelled: true });
@@ -256,7 +273,7 @@ function runPiProcess({
           // Each `/new` dialog pushes the state read later; the last one settles.
           scheduleNewSessionStateCheck(row.title === "Choose a model"
             ? NEW_SESSION_SETTLE_MS
-            : NEW_SESSION_PICKER_WINDOW_MS);
+            : lateDialogWindowMs);
           return;
         }
 
@@ -413,6 +430,7 @@ async function runPiCase(name, options = {}) {
         "--no-prompt-templates", "--no-mcp", "--no-context-files", "-e", ".", "--mode", "rpc"],
       process_deadline_ms: PROBE_TIMEOUT_MS,
       cleanup_grace_ms: CLEANUP_GRACE_MS,
+      new_session_picker_window_ms: lateDialogWindowMs,
       processes: transcripts.map((item) => ({
         exit_code: item.exit_code,
         process_exited: item.processExited,

@@ -69,6 +69,51 @@ test("resume, fork and reload never open the picker or warn", async () => {
 	}
 });
 
+test("a deferred startup notice never becomes an unhandled rejection after a session replacement", async () => {
+	const rejections = [];
+	const onRejection = (reason) => rejections.push(reason);
+	process.on("unhandledRejection", onRejection);
+
+	try {
+		const harness = createHarness({ models: [], mode: "rpc" });
+		// Pi invalidates a captured ctx after newSession/fork/switchSession/reload: its
+		// `ui` getter runs runner.assertActive() and throws this exact shape.
+		harness.ctx.ui.notify = () => {
+			throw new Error("extension ctx is stale after session replacement or reload");
+		};
+
+		await harness.events.session_start({ type: "session_start", reason: "startup" }, harness.ctx);
+		await new Promise((done) => setTimeout(done, 50));
+
+		assert.deepEqual(rejections, []);
+	} finally {
+		process.off("unhandledRejection", onRejection);
+	}
+});
+
+test("a rejecting deferred startup picker is swallowed when the ctx is already stale", async () => {
+	const rejections = [];
+	const onRejection = (reason) => rejections.push(reason);
+	process.on("unhandledRejection", onRejection);
+
+	try {
+		const harness = createHarness({ models: [createModel("openai", "gpt-5.4", "GPT-5.4")], mode: "rpc" });
+		harness.ctx.ui.select = async () => {
+			throw new Error("extension ctx is stale after session replacement or reload");
+		};
+		harness.ctx.ui.notify = () => {
+			throw new Error("extension ctx is stale after session replacement or reload");
+		};
+
+		await harness.events.session_start({ type: "session_start", reason: "startup" }, harness.ctx);
+		await new Promise((done) => setTimeout(done, 50));
+
+		assert.deepEqual(rejections, []);
+	} finally {
+		process.off("unhandledRejection", onRejection);
+	}
+});
+
 test("startup keeps its awaited flow and its existing no-model fallback warning", async () => {
 	const harness = createHarness({ models: [] });
 

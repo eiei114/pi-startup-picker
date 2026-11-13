@@ -5,6 +5,7 @@ import {
   ABOUT_MESSAGE_OFF,
   ABOUT_MESSAGE_ON,
   behaviorAssertions,
+  classifySelectDialog,
   parseJsonLines,
 } from "../scripts/pi-sdk-smoke-contract.mjs";
 
@@ -176,6 +177,43 @@ test("new /new assertions require a non-cancelled new_session response", () => {
   assert.equal(
     assertions("new_session_enabled", [commandResponse, cancelled], {
       newSessionTitles: ["Choose a provider", "Choose a model"],
+      newSessionStateChecked: true,
+    })[0].passed,
+    false,
+  );
+});
+
+test("/new dialog classification keeps tracking dialogs after the bounded window", () => {
+  assert.deepEqual(classifySelectDialog({ newSessionSent: false, newSessionStateChecked: false }), {
+    kind: "startup",
+    invalidatesStateCheck: false,
+  });
+
+  // The picker opened by the deferred `/new` handler is still a `/new` dialog even
+  // when it arrives after the bounded window already read state.
+  assert.deepEqual(classifySelectDialog({ newSessionSent: true, newSessionStateChecked: true }), {
+    kind: "new-session",
+    invalidatesStateCheck: true,
+  });
+  assert.deepEqual(classifySelectDialog({ newSessionSent: true, newSessionStateChecked: false }), {
+    kind: "new-session",
+    invalidatesStateCheck: false,
+  });
+});
+
+test("a late `/new` provider dialog still lets the enabled case pass", () => {
+  assert.equal(
+    assertions("new_session_enabled", [commandResponse, newSessionResponse], {
+      newSessionTitles: ["Choose a provider", "Choose a model"],
+      newSessionStateChecked: true,
+    })[0].passed,
+    true,
+  );
+
+  // The same dialogs classified as startup dialogs would fail the assertion.
+  assert.equal(
+    assertions("new_session_enabled", [commandResponse, newSessionResponse], {
+      newSessionTitles: [],
       newSessionStateChecked: true,
     })[0].passed,
     false,

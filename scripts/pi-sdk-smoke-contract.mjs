@@ -14,6 +14,19 @@ export const ABOUT_MESSAGE_ON = "Pi Startup Picker is loaded. On normal startup 
 export const SETTINGS_COMMAND_NAME = "startup-picker:settings";
 export const STARTUP_PICKER_WINDOW_MS = 300;
 
+/**
+ * Classifies a select dialog in a `/new` smoke case.
+ *
+ * Such a case settles its startup picker (cancelled) before sending `new_session`,
+ * so any dialog after that request belongs to the `/new` flow. A dialog that arrives
+ * after the bounded window already read state invalidates that earlier read: the
+ * read no longer proves the picker never opened.
+ */
+export function classifySelectDialog({ newSessionSent, newSessionStateChecked }) {
+  if (newSessionSent !== true) return { kind: "startup", invalidatesStateCheck: false };
+  return { kind: "new-session", invalidatesStateCheck: newSessionStateChecked === true };
+}
+
 export function parseJsonLines(output) {
   return output.split(/\r?\n/).flatMap((line) => {
     if (!line.trim()) return [];

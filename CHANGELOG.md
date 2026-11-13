@@ -21,11 +21,21 @@ This project follows semantic versioning.
 - On `/new`, the baseline is the model that was current before the picker opened: cancel, no UI,
   an empty registry, an unknown recent entry and a `setModel()` failure all keep that model and
   let `/new` continue, never the startup default fallback.
-- Save to the recent store only after a successful model switch.
+- Save to the recent store only after a successful model switch. A failed recent-store write now
+  reports that the selected model is active but its recent entry was not saved, instead of
+  claiming the picker could not be offered or that the previous model still applies.
 - `resume`, `fork` and `reload` still never show the picker. Normal startup behavior and its
   cancel-to-default fallback are unchanged.
 - The SDK smoke harness now covers `/new` with the setting missing, off and on, and the committed
-  report was refreshed against an actual Pi 1.5.0 host.
+  report was refreshed against an actual Pi 1.5.0 host. A `/new` dialog that arrives after the
+  picker window is still tracked as a `/new` dialog, which invalidates an earlier state read.
+
+### Fixed
+
+- A deferred startup picker that loses its session no longer turns the stale-context `notify`
+  into an unhandled rejection.
+- Saving settings preserves the existing file mode through the temp-file rename, and a new
+  settings file is created owner-only instead of with the default 0644.
 
 ## [0.3.12] - 2026-11-12
 

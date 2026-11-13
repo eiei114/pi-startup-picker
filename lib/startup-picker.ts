@@ -31,6 +31,42 @@ interface StartupPickerOptions {
 	) => Promise<Model<any> | undefined>;
 }
 
+function notifySafely(ctx: PickerContext, message: string, type: "info" | "warning" | "error"): void {
+	try {
+		ctx.ui.notify(message, type);
+	} catch {
+		// A session replacement can invalidate the captured ctx. The model switch this
+		// notice describes already happened, so the notice stays best-effort.
+	}
+}
+
+/**
+ * The recent store is written after the model is already active, so a failure there
+ * must not surface as a "could not offer the picker / continuing with your current
+ * model" error. It gets its own notice and leaves the selection in place.
+ */
+async function saveRecentAfterActivation(
+	ctx: PickerContext,
+	selectedModel: Pick<Model<any>, "provider" | "id" | "name">,
+	selection: RecentCombination,
+	saveRecent: (selection: RecentCombination, path: string) => Promise<RecentCombination[]>,
+	storePath: string,
+): Promise<boolean> {
+	try {
+		await saveRecent(selection, storePath);
+		return true;
+	} catch (error) {
+		// Labels come from the selected model and selection only: the captured ctx may
+		// already be stale, and a modelRegistry access would throw here again.
+		notifySafely(
+			ctx,
+			`Selected ${selectedModel.provider} -> ${modelLabel(selectedModel)} is active but its recent entry was not saved: ${String(error)}.`,
+			"warning",
+		);
+		return false;
+	}
+}
+
 function sameModel(a: Pick<Model<any>, "provider" | "id"> | undefined, b: Pick<Model<any>, "provider" | "id">): boolean {
 	return a !== undefined && a.provider === b.provider && a.id === b.id;
 }
@@ -251,7 +287,7 @@ export async function runStartupPicker(
 			return { action: "kept-current", reason: "already-current-model" };
 		}
 
-		await saveRecent(selection, storePath);
+		await saveRecentAfterActivation(ctx, selectedModel, selection, saveRecent, storePath);
 		return { action: "selected", reason: "already-current-model", selection };
 	}
 
@@ -278,7 +314,11 @@ export async function runStartupPicker(
 		);
 	}
 
-	await saveRecent(selection, storePath);
+	const recentSaved = await saveRecentAfterActivation(ctx, selectedModel, selection, saveRecent, storePath);
 
-	return { action: "selected", reason: "model-selected", selection };
+	return {
+		action: "selected",
+		reason: recentSaved ? "model-selected" : "model-selected-recent-save-failed",
+		selection,
+	};
 }

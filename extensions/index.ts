@@ -2,9 +2,9 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { runAboutCommand, runSettingsCommand } from "../lib/settings-command.ts";
 import { runStartupPicker } from "../lib/startup-picker.ts";
 
-function warnSafely(ctx: ExtensionContext, message: string): void {
+function notifySafely(ctx: ExtensionContext, message: string, type: "info" | "warning" | "error"): void {
 	try {
-		ctx.ui.notify(message, "warning");
+		ctx.ui.notify(message, type);
 	} catch {
 		// Pi invalidates a ctx after a session replacement. A late deferred handler
 		// must not turn that into an unhandled rejection.
@@ -23,7 +23,8 @@ export default function (pi: ExtensionAPI) {
 			if (ctx.mode === "rpc") {
 				setTimeout(() => {
 					void runStartupPicker(pi, event, ctx).catch((error: unknown) => {
-						ctx.ui.notify(`Pi Startup Picker failed: ${String(error)}`, "error");
+						// Pi may invalidate this ctx before the deferred startup handler settles.
+						notifySafely(ctx, `Pi Startup Picker failed: ${String(error)}`, "error");
 					});
 				}, 0);
 				return;
@@ -51,9 +52,10 @@ export default function (pi: ExtensionAPI) {
 			}
 
 			await runStartupPicker(pi, event, ctx).catch((error: unknown) => {
-				warnSafely(
+				notifySafely(
 					ctx,
 					`Pi Startup Picker could not offer the model picker: ${String(error)}. Continuing with your current model.`,
+					"warning",
 				);
 			});
 		};

@@ -1,7 +1,10 @@
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
+
+/** New settings files get owner-only permissions; existing ones keep their mode. */
+export const SETTINGS_FILE_MODE = 0o600;
 
 export interface PickerSettings {
 	showOnNewSession: boolean;
@@ -51,10 +54,30 @@ async function readRawSettingsObject(path: string): Promise<Record<string, unkno
 	}
 }
 
+async function existingMode(path: string): Promise<number | undefined> {
+	try {
+		return (await stat(path)).mode & 0o777;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * The temp file is written with the mode the final file must have. Otherwise the
+ * rename would replace a user-owned 0600 file with Node's default creation mode.
+ */
+async function writeTempWithMode(tempPath: string, content: string, mode: number): Promise<void> {
+	await writeFile(tempPath, content, { encoding: "utf8", mode });
+	// An existing temp file keeps its old mode, and a filesystem or platform that
+	// ignores the creation mode would otherwise widen the file.
+	await chmod(tempPath, mode).catch(() => {});
+}
+
 /**
  * Writes the settings file atomically (temp file + rename in the same directory).
- * Other keys already present in the file are preserved, and a write failure
- * rejects instead of reporting success.
+ * Other keys already present in the file are preserved, the existing file mode is
+ * kept (a new file is created owner-only), and a write failure rejects instead of
+ * reporting success.
  */
 export async function savePickerSettings(
 	settings: PickerSettings,
@@ -68,8 +91,9 @@ export async function savePickerSettings(
 	await mkdir(dir, { recursive: true });
 
 	const tempPath = join(dir, `.${basename(path)}.${randomBytes(6).toString("hex")}.tmp`);
+	const targetMode = (await existingMode(path)) ?? SETTINGS_FILE_MODE;
 	try {
-		await writeFile(tempPath, content, "utf8");
+		await writeTempWithMode(tempPath, content, targetMode);
 		await rename(tempPath, path);
 	} catch (error) {
 		await unlink(tempPath).catch(() => {});

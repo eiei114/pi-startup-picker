@@ -27,6 +27,7 @@ function createHarness({
 	setModelSuccess = true,
 	currentModel,
 	recents = [],
+	saveRecentError,
 } = {}) {
 	const selections = [...selectAnswers];
 	const selectCalls = [];
@@ -73,6 +74,7 @@ function createHarness({
 		storePath: "ignored.json",
 			loadRecents: async () => recents,
 			saveRecent: async (selection) => {
+				if (saveRecentError !== undefined) throw saveRecentError;
 				savedSelections.push(selection);
 				return savedSelections;
 			},
@@ -590,4 +592,70 @@ test("startup picker falls back when custom searchable UI is cancelled", async (
 	assert.equal(harness.selectCalls.length, 0);
 	assert.equal(harness.setModelCalls.length, 0);
 	assert.deepEqual(harness.notifications, []);
+});
+
+test("startup keeps the switch and reports the recent-store failure on its own", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+		currentModel: claude,
+		saveRecentError: new Error("disk full"),
+	});
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "startup" }, harness.ctx, harness.options);
+
+	assert.equal(result.action, "selected");
+	assert.equal(result.reason, "model-selected-recent-save-failed");
+	assert.deepEqual(harness.setModelCalls, [gpt]);
+	assert.equal(harness.notifications.length, 1);
+	assert.equal(harness.notifications[0].level, "warning");
+	assert.equal(harness.notifications[0].message.startsWith("Selected openai -> GPT-5.4 (gpt-5.4) is active but its recent entry was not saved"), true);
+	assert.doesNotMatch(harness.notifications[0].message, /Continuing with your default model/);
+});
+test("/new keeps the switch and reports the recent-store failure on its own", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+		currentModel: claude,
+		saveRecentError: new Error("disk full"),
+	});
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "new" }, harness.ctx, {
+		...harness.options,
+		loadSettings: async () => ({ showOnNewSession: true }),
+	});
+
+	assert.equal(result.action, "selected");
+	assert.equal(result.reason, "model-selected-recent-save-failed");
+	assert.deepEqual(harness.setModelCalls, [gpt]);
+	assert.equal(harness.notifications.length, 1);
+	assert.equal(harness.notifications[0].level, "warning");
+	assert.match(harness.notifications[0].message, /is active but its recent entry was not saved/);
+	assert.doesNotMatch(harness.notifications[0].message, /Continuing \/new with/);
+});
+
+test("a stale ctx does not turn the recent-store notice into a thrown error", async () => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["OPENAI (openai)", "GPT-5.4 (gpt-5.4)"],
+		currentModel: claude,
+		saveRecentError: new Error("disk full"),
+	});
+	harness.ctx.ui.notify = () => {
+		throw new Error("extension ctx is stale after session replacement or reload");
+	};
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "new" }, harness.ctx, {
+		...harness.options,
+		loadSettings: async () => ({ showOnNewSession: true }),
+	});
+
+	assert.equal(result.action, "selected");
+	assert.deepEqual(harness.setModelCalls, [gpt]);
 });
