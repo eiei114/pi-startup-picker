@@ -39,6 +39,7 @@ class SearchableModelPickerComponent extends Container implements Focusable {
 	private listContainer: Container;
 	private items: SearchableModelItem[];
 	private filteredItems: SearchableModelItem[] = [];
+	private query = "";
 	private selectedIndex = 0;
 	private tui: TUI;
 	private theme: Theme;
@@ -101,8 +102,12 @@ class SearchableModelPickerComponent extends Container implements Focusable {
 	}
 
 	private filterModels(query: string): void {
+		const queryChanged = query !== this.query;
+		this.query = query;
 		this.filteredItems = filterSearchableItems(this.items, query);
-		this.selectedIndex = Math.min(this.selectedIndex, Math.max(0, this.filteredItems.length - 1));
+		this.selectedIndex = queryChanged
+			? 0
+			: Math.min(this.selectedIndex, Math.max(0, this.filteredItems.length - 1));
 		this.updateList();
 	}
 
