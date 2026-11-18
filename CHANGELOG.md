@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This project follows semantic versioning.
 
+## [Unreleased]
+
+### Added
+
+- `/startup-picker:about` now reports the recent-store path, stored-entry count, and startup-only
+  scope; missing and unreadable stores are reported without throwing.
+
 ## [0.4.0] - 2026-11-12
 
 ### Added

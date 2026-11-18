@@ -7,10 +7,10 @@ export const SDK_NAMES = [
 ];
 export const UNHANDLED_ERROR_PATTERN = /UnhandledPromiseRejection|uncaught exception|shutdown error/i;
 export const EXTENSION_LOAD_ERROR_PATTERN = /Failed to load extension|Error loading extension/i;
-/** Exact `/startup-picker:about` message with the default-off `/new` setting. */
-export const ABOUT_MESSAGE_OFF = "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins. Ask on /new (opt-in, default off): off.";
-/** Exact `/startup-picker:about` message with `showOnNewSession: true`. */
-export const ABOUT_MESSAGE_ON = "Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins. Ask on /new (opt-in, default off): on.";
+/** Representative `/startup-picker:about` message with the default-off `/new` setting. */
+export const ABOUT_MESSAGE_OFF = "Pi Startup Picker is loaded. Startup flow: the searchable provider/model picker runs on normal startup, before the session begins (startup-only). Ask on /new (separate opt-in, default off): off. Recent store path: /test/pi-startup-picker-recents.json. Recent entries: 0.";
+/** Representative `/startup-picker:about` message with `showOnNewSession: true`. */
+export const ABOUT_MESSAGE_ON = "Pi Startup Picker is loaded. Startup flow: the searchable provider/model picker runs on normal startup, before the session begins (startup-only). Ask on /new (separate opt-in, default off): on. Recent store path: /test/pi-startup-picker-recents.json. Recent entries: 0.";
 export const SETTINGS_COMMAND_NAME = "startup-picker:settings";
 export const STARTUP_PICKER_WINDOW_MS = 300;
 
@@ -74,10 +74,18 @@ function aboutResponse(responses) {
     : undefined;
 }
 
-function aboutNotification(responses, message) {
+export function isAboutMessage(message, showOnNewSession = false) {
+  const setting = showOnNewSession ? "on" : "off";
+  return typeof message === "string"
+    && message.startsWith("Pi Startup Picker is loaded. Startup flow: the searchable provider/model picker runs on normal startup, before the session begins (startup-only). ")
+    && message.includes(`Ask on /new (separate opt-in, default off): ${setting}.`)
+    && /Recent store path: .+\. Recent entries: (?:\d+(?: \(store does not exist yet\))?|unavailable \(store could not be read\))\.$/.test(message);
+}
+
+function aboutNotification(responses, showOnNewSession = false) {
   return responses.find((row) => row?.type === "extension_ui_request" && row.method === "notify"
     && row.notifyType === "info"
-    && row.message === message);
+    && isAboutMessage(row.message, showOnNewSession));
 }
 
 function parseErrorResponse(responses) {
@@ -119,7 +127,7 @@ export function behaviorAssertions(name, {
   if (name === "happy_path") {
     const selectedModel = modelState(responses);
     const handledPrompt = aboutResponse(responses);
-    const notification = aboutNotification(responses, ABOUT_MESSAGE_OFF);
+    const notification = aboutNotification(responses);
     return [assertion("feature_response", "Actual Pi selects the configured offline model and handles the extension command",
       { model: selectedModel?.data?.model ?? null, selectionCompleted: selectionCompleted === true,
         prompt: handledPrompt ?? null, notification: notification ?? null },
@@ -135,7 +143,7 @@ export function behaviorAssertions(name, {
     const command = registeredPicker(responses);
     const selectedModel = modelState(responses);
     const handledPrompt = aboutResponse(responses);
-    const notification = aboutNotification(responses, ABOUT_MESSAGE_OFF);
+    const notification = aboutNotification(responses);
     return [
       assertion("reloaded_extension_registered", "The second actual Pi process registers startup-picker:about",
         command ?? null, !!command),

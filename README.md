@@ -95,7 +95,7 @@ The main behavior is automatic on normal Pi startup. Recent combinations are sto
 /startup-picker:settings
 ```
 
-Select `Ask on /new: on`. Cancelling the dialog keeps the current value, and a failed write is reported as an error instead of being shown as saved. `/startup-picker:about` always reports the current on/off state. The setting lives next to the recent store:
+Select `Ask on /new: on`. Cancelling the dialog keeps the current value, and a failed write is reported as an error instead of being shown as saved. `/startup-picker:about` reports whether the `/new` picker is on, the resolved recent-store path and entry count (or a clear missing/unreadable status), and that the picker runs only at startup. The setting lives next to the recent store:
 
 ```txt
 ~/.pi/agent/pi-startup-picker-settings.json

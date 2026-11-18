@@ -1,5 +1,10 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import {
+	getRecentStorePath,
+	readRecentCombinations,
+	type RecentStoreReadResult,
+} from "./recent-store.ts";
+import {
 	getSettingsStorePath,
 	loadPickerSettings,
 	saveShowOnNewSession,
@@ -89,13 +94,23 @@ export async function runSettingsCommand(
 	return { action: "saved", reason: selected ? "enabled" : "disabled", showOnNewSession: selected };
 }
 
-export function buildAboutMessage(showOnNewSession: boolean): string {
-	return `Pi Startup Picker is loaded. On normal startup it will offer a searchable provider/model picker before the session begins. Ask on /new (opt-in, default off): ${stateLabel(showOnNewSession)}.`;
-}
-
 export interface AboutCommandOptions {
 	settingsPath?: string;
 	loadSettings?: (path: string) => Promise<PickerSettings>;
+	recentStorePath?: string;
+	loadRecentStore?: (path: string) => Promise<RecentStoreReadResult>;
+}
+
+export function buildAboutMessage(
+	showOnNewSession: boolean,
+	recentStorePath = getRecentStorePath(),
+	recentStore: RecentStoreReadResult = { status: "loaded", recents: [] },
+): string {
+	const recentCount =
+		recentStore.status === "unreadable"
+			? "unavailable (store could not be read)"
+			: `${recentStore.recents.length}${recentStore.status === "missing" ? " (store does not exist yet)" : ""}`;
+	return `Pi Startup Picker is loaded. Startup flow: the searchable provider/model picker runs on normal startup, before the session begins (startup-only). Ask on /new (separate opt-in, default off): ${stateLabel(showOnNewSession)}. Recent store path: ${recentStorePath}. Recent entries: ${recentCount}.`;
 }
 
 export async function runAboutCommand(
@@ -104,7 +119,12 @@ export async function runAboutCommand(
 ): Promise<PickerSettings> {
 	const settingsPath = options.settingsPath ?? getSettingsStorePath();
 	const loadSettings = options.loadSettings ?? loadPickerSettings;
+	const recentStorePath = options.recentStorePath ?? getRecentStorePath();
+	const loadRecentStore = options.loadRecentStore ?? readRecentCombinations;
 	const settings = await loadSettings(settingsPath);
-	ui.notify(buildAboutMessage(settings.showOnNewSession), "info");
+	const recentStore = await loadRecentStore(recentStorePath).catch(
+		(): RecentStoreReadResult => ({ status: "unreadable", recents: [] }),
+	);
+	ui.notify(buildAboutMessage(settings.showOnNewSession, recentStorePath, recentStore), "info");
 	return settings;
 }
