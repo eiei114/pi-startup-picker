@@ -9,6 +9,11 @@ export interface RecentCombination {
 	modelName?: string;
 }
 
+export type RecentStoreReadResult =
+	| { status: "loaded"; recents: RecentCombination[] }
+	| { status: "missing"; recents: RecentCombination[] }
+	| { status: "unreadable"; recents: RecentCombination[] };
+
 export const RECENT_LIMIT = 3;
 
 export function getRecentStorePath(): string {
@@ -47,13 +52,30 @@ export function mergeRecentCombinations(
 	return [selection, ...deduped].slice(0, limit);
 }
 
-export async function loadRecentCombinations(path = getRecentStorePath()): Promise<RecentCombination[]> {
+export async function readRecentCombinations(path = getRecentStorePath()): Promise<RecentStoreReadResult> {
+	let raw: string;
 	try {
-		const raw = await readFile(path, "utf8");
-		return normalizeRecentCombinations(JSON.parse(raw));
-	} catch {
-		return [];
+		raw = await readFile(path, "utf8");
+	} catch (error) {
+		const missing =
+			error !== null &&
+			typeof error === "object" &&
+			"code" in error &&
+			error.code === "ENOENT";
+		return { status: missing ? "missing" : "unreadable", recents: [] };
 	}
+
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return { status: "unreadable", recents: [] };
+		return { status: "loaded", recents: normalizeRecentCombinations(parsed) };
+	} catch {
+		return { status: "unreadable", recents: [] };
+	}
+}
+
+export async function loadRecentCombinations(path = getRecentStorePath()): Promise<RecentCombination[]> {
+	return (await readRecentCombinations(path)).recents;
 }
 
 export async function saveRecentCombination(

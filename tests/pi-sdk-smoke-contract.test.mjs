@@ -6,6 +6,7 @@ import {
   ABOUT_MESSAGE_ON,
   behaviorAssertions,
   classifySelectDialog,
+  isAboutMessage,
   parseJsonLines,
 } from "../scripts/pi-sdk-smoke-contract.mjs";
 
@@ -61,8 +62,15 @@ test("RPC line parser ignores diagnostics and keeps complete JSON responses", ()
 });
 
 test("about messages report the exact on and off states", () => {
-  assert.match(ABOUT_MESSAGE_OFF, /Ask on \/new \(opt-in, default off\): off\.$/);
-  assert.match(ABOUT_MESSAGE_ON, /Ask on \/new \(opt-in, default off\): on\.$/);
+  assert.match(ABOUT_MESSAGE_OFF, /Ask on \/new \(separate opt-in, default off\): off\./);
+  assert.match(ABOUT_MESSAGE_OFF, /Recent store path: .+\. Recent entries: 0\.$/);
+  assert.match(ABOUT_MESSAGE_OFF, /startup-only/);
+  assert.match(ABOUT_MESSAGE_ON, /Ask on \/new \(separate opt-in, default off\): on\./);
+  assert.equal(isAboutMessage(ABOUT_MESSAGE_OFF), true);
+  assert.equal(isAboutMessage(ABOUT_MESSAGE_ON, true), true);
+  assert.equal(isAboutMessage(ABOUT_MESSAGE_OFF.replace("Recent entries: 0.", "Recent entries: unavailable (store could not be read).")), true);
+  assert.equal(isAboutMessage("Pi Startup Picker is loaded."), false);
+  assert.equal(isAboutMessage(ABOUT_MESSAGE_OFF.replace("Recent entries: 0.", "Recent entries: ?.")), false);
   assert.notEqual(ABOUT_MESSAGE_OFF, ABOUT_MESSAGE_ON);
 });
 

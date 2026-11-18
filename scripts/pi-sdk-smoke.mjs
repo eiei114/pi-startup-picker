@@ -3,7 +3,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import {
-  ABOUT_MESSAGE_OFF,
   behaviorAssertions,
   classifySelectDialog,
   EXTENSION_LOAD_ERROR_PATTERN,
@@ -11,6 +10,7 @@ import {
   SDK_NAMES,
   UNHANDLED_ERROR_PATTERN,
   VERIFICATION_CONTRACT,
+  isAboutMessage,
 } from "./pi-sdk-smoke-contract.mjs";
 
 const PROBE_TIMEOUT_MS = 15_000;
@@ -46,7 +46,6 @@ const sdkVersions = Object.fromEntries(SDK_NAMES.map((name) => {
 
 const codingAgentManifest = readJson(resolve(root, "node_modules/@earendil-works/pi-coding-agent/package.json"));
 const piCli = resolve(root, "node_modules/@earendil-works/pi-coding-agent", codingAgentManifest.bin.pi);
-const ABOUT_MESSAGE = ABOUT_MESSAGE_OFF;
 const smokeModel = {
   id: "offline-smoke-model",
   name: "Offline Smoke Model",
@@ -299,7 +298,7 @@ function runPiProcess({
         promptResponseSeen = row.success === true && row.data?.disposition === "handled";
         requestState();
       }
-      if (row.type === "extension_ui_request" && row.method === "notify" && row.message === ABOUT_MESSAGE) {
+      if (row.type === "extension_ui_request" && row.method === "notify" && isAboutMessage(row.message)) {
         aboutNotificationSeen = true;
       }
       if (row.type === "extension_ui_request" && row.method === "notify"

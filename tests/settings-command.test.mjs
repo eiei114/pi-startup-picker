@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const { runSettingsCommand, runAboutCommand, SETTINGS_DIALOG_TITLE } = await import(
 	"../lib/settings-command.ts"
@@ -93,18 +96,93 @@ test("settings command reports a write failure and does not claim it was saved",
 
 test("about command reports the current on/off state", async () => {
 	for (const [value, expected] of [
-		[true, /Ask on \/new \(opt-in, default off\): on\./],
-		[false, /Ask on \/new \(opt-in, default off\): off\./],
+		[true, /Ask on \/new \(separate opt-in, default off\): on\./],
+		[false, /Ask on \/new \(separate opt-in, default off\): off\./],
 	]) {
 		const notifications = [];
 		const settings = await runAboutCommand(
 			{ notify: (message, level) => notifications.push({ message, level }) },
-			{ settingsPath: "ignored.json", loadSettings: async () => ({ showOnNewSession: value }) },
+			{
+				settingsPath: "ignored.json",
+				recentStorePath: "ignored-recents.json",
+				loadSettings: async () => ({ showOnNewSession: value }),
+				loadRecentStore: async () => ({ status: "missing", recents: [] }),
+			},
 		);
 
 		assert.equal(settings.showOnNewSession, value);
-		assert.match(notifications[0].message, /On normal startup it will offer a searchable provider\/model picker/);
+		assert.match(notifications[0].message, /Startup flow: the searchable provider\/model picker runs on normal startup, before the session begins \(startup-only\)/);
 		assert.match(notifications[0].message, expected);
+	}
+});
+
+test("about command reports the recent store path and count when the store is present", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-about-"));
+	try {
+		const storePath = join(dir, "recents.json");
+		await writeFile(
+			storePath,
+			JSON.stringify([
+				{ provider: "openai", modelId: "gpt-5" },
+				{ provider: "anthropic", modelId: "claude-sonnet-4" },
+			]),
+			"utf8",
+		);
+		const notifications = [];
+
+		await runAboutCommand(
+			{ notify: (message, level) => notifications.push({ message, level }) },
+			{
+				settingsPath: "ignored.json",
+				recentStorePath: storePath,
+				loadSettings: async () => ({ showOnNewSession: false }),
+			},
+		);
+
+		assert.ok(notifications[0].message.includes(`Recent store path: ${storePath}.`));
+		assert.match(notifications[0].message, /Recent entries: 2\./);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("about command reports zero entries when the recent store is missing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-about-"));
+	try {
+		const notifications = [];
+		await runAboutCommand(
+			{ notify: (message, level) => notifications.push({ message, level }) },
+			{
+				settingsPath: "ignored.json",
+				recentStorePath: join(dir, "missing-recents.json"),
+				loadSettings: async () => ({ showOnNewSession: false }),
+			},
+		);
+
+		assert.match(notifications[0].message, /Recent entries: 0 \(store does not exist yet\)\./);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
+	}
+});
+
+test("about command reports an unreadable recent store without throwing", async () => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-about-"));
+	try {
+		const unreadablePath = join(dir, "recents-directory");
+		await mkdir(unreadablePath);
+		const notifications = [];
+		await runAboutCommand(
+			{ notify: (message, level) => notifications.push({ message, level }) },
+			{
+				settingsPath: "ignored.json",
+				recentStorePath: unreadablePath,
+				loadSettings: async () => ({ showOnNewSession: false }),
+			},
+		);
+
+		assert.match(notifications[0].message, /Recent entries: unavailable \(store could not be read\)\./);
+	} finally {
+		await rm(dir, { recursive: true, force: true });
 	}
 });
 
