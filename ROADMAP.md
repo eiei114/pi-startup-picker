@@ -6,7 +6,7 @@ This roadmap tracks current release status, short-term priorities, and a backlog
 bounded maintenance seeds (30-90 minutes each) that the weekly maintenance seed planner
 can promote into individual issues. It is a living document — update it as releases ship.
 
-Last refreshed: **2026-11-12** (DOT-3456 — opt-in `/new` picker, default off; backlog snapshot below remains dated 2026-09-05).
+Last refreshed: **2026-11-18** (DOT-3756 — S-4 implementation and S-5/S-6 completion evidence).
 
 ## Project goal
 
@@ -50,31 +50,26 @@ do not intercept non-startup session reasons unless the user explicitly opts in.
 - Integration, search, settings, and store regression tests for the startup and `/new` matrix.
 - Shipped package contains only extension + lib + docs (no template placeholder artifacts).
 
-## Roadmap review — 2026-W41
+## Roadmap review — 2026-W47
 
-The 2026-W41 refresh was based on `main` at release `0.3.1`. The next bounded
-maintenance candidates are:
+The W41 snapshot is superseded. S-4's implementation is ready in PR #75 (review
+pending); S-5 is complete in PRs #35 and #39; S-6 is complete in PRs #41 and #42.
+The remaining bounded maintenance candidate is:
 
-1. **S-3** — Clear template placeholders from shipped content.
-2. **S-4** — Make `/startup-picker:about` report real status.
-3. **S-5** — Atomic recent-store write hardening.
+1. **S-7** — DevDependency audit triage.
 
-These candidates are already recorded in the maintenance backlog below; no
-implementation or release action is part of this roadmap refresh.
+S-4/S-5/S-6 remain in the seed sections below as completed evidence, not active
+candidates. No release action is part of this roadmap refresh.
 
 ## Short-term goals (next 1-2 releases)
 
 Keep releases small and independently shippable. Each item below maps to one or more of the
 maintenance seeds in the next section.
 
-1. **Surface real status (minor or patch)** — give users a useful `/startup-picker:about`
-   that reports store path, recent count, and startup-only scope (seed S-4).
-2. **Harden the store (minor)** — atomic recent-store writes to remove the torn-read window
-   (seed S-5).
-3. **Keep maintenance guardrails green (patch)** — add a ROADMAP structure smoke check and
-   triage devDependency audit noise (seeds S-6, S-7).
+1. **Keep maintenance guardrails green (patch)** — triage devDependency audit noise (seed S-7).
 
-Beyond the next 1-2 releases, candidate larger work (kept out of scope here, see non-goals):
+S-4/S-5/S-6 are completed or implementation-ready as recorded below. Beyond the next 1-2
+releases, candidate larger work (kept out of scope here, see non-goals):
 richer recent labels or availability hints; optional non-startup triggers after real usage feedback.
 The `/new` picker itself is now shipped behind an opt-in setting.
 
@@ -86,12 +81,15 @@ The `/new` picker itself is now shipped behind an opt-in setting.
   reasons. The `/new` picker only runs when the user turns it on.
 - Preset routing, policy routing, or scheduled model switching.
 
-## Recently shipped seeds
+## Seed delivery status
 
-| Seed | Shipped in | Notes |
+| Seed | Status / PR evidence | Notes |
 | --- | --- | --- |
-| S-3 · Clear template placeholders | 0.3.2 (#32) | Removed placeholder skills/prompts/themes from the published tarball |
+| S-3 · Clear template placeholders | Done · 0.3.2 (#32) | Removed placeholder skills/prompts/themes from the published tarball |
 | `/new` opt-in picker | 0.4.0 (unreleased) | "Ask on /new" setting, `/startup-picker:settings`, cancel keeps the current model |
+| S-4 · `/startup-picker:about` status | Done · PR #75 (review pending) | Store path, recent count, explicit missing/unreadable status, and startup-only scope |
+| S-5 · Atomic recent-store write | Done · PR #35 and #39 (merged) | Atomic rename implementation and regression coverage |
+| S-6 · ROADMAP structure smoke guard | Done · PR #41 and #42 (merged) | Seed-heading/time-band guard and heading-boundary fix |
 
 ## Maintenance seeds (30-90 minutes each)
 
@@ -105,21 +103,31 @@ Pick one, open an issue, and link it back here when started.
 
 ### S-4 · Make `/startup-picker:about` report real status (~45-75 min)
 
-- **Why**: The command currently emits a static info message. Users cannot see the recent-store
-  path, how many recents are stored, or confirm the startup-only boundary.
+- **Status**: Done — PR #75 (independent review pending).
+- **Delivered**: Report the resolved recent-store path, normalized recent count, startup-only scope,
+  and a clear missing or unreadable-store message. `/new` remains a separate opt-in.
+- **Evidence**: `lib/settings-command.ts`; present/missing/unreadable tests in
+  `tests/settings-command.test.mjs`; PR #75.
+
+- **Why**: At seed creation the command emitted a static info message, so users could not see the
+  recent-store path/count or confirm the startup-only boundary.
 - **Scope**: Enhance the handler to report the recent-store path, the current recent count, and
   a one-line reminder that the picker runs on normal startup only. Keep it dependency-light and
   failure-tolerant (missing store → count 0).
 - **Acceptance criteria**:
   - `/startup-picker:about` prints store path + recent count + startup-only scope.
-  - A missing/malformed store reports count 0 without throwing.
+  - A missing store reports count 0; an unreadable store reports an unavailable count without
+    throwing.
   - `npm run ci` passes; add or extend a test if feasible.
 
 ### S-5 · Atomic recent-store write (~30-60 min)
 
-- **Why**: `saveRecentCombination` writes the JSON file directly. A crash mid-write can let readers
-  observe a truncated destination file. The store self-heals on the next load, but a temp-write +
-  atomic `rename` removes the torn-read window at the destination path.
+- **Status**: Done — PR #35 (atomic write) and PR #39 (regression coverage), both merged.
+- **Evidence**: `lib/recent-store.ts` temp-file write plus same-directory rename;
+  `tests/recent-store.test.mjs` atomic-save regression cases.
+
+- **Why**: The original direct write could expose a truncated destination file. The completed
+  temp-write plus atomic `rename` removes that torn-read window at the destination path.
 - **Scope**: Write to a temp file in the same directory and `rename` it into place; keep the existing
   `JSON.stringify(next, null, 2)` shape and trailing newline. This targets **atomicity** (readers
   never see a partially-written destination), not power-loss durability.
@@ -133,6 +141,9 @@ Pick one, open an issue, and link it back here when started.
   - `npm run ci` passes.
 
 ### S-6 · ROADMAP structure smoke guard (~30-45 min)
+
+- **Status**: Done — PR #41 (structure guard) and PR #42 (heading-boundary fix), both merged.
+- **Evidence**: `tests/smoke.test.mjs` checks maintenance-seed headings and time bands.
 
 - **Why**: The weekly maintenance seed planner depends on `ROADMAP.md` listing bounded candidates
   with time estimates. A silent drift (fewer than three seeds, missing time bands) blocks automated
