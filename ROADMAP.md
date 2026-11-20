@@ -6,7 +6,7 @@ This roadmap tracks current release status, short-term priorities, and a backlog
 bounded maintenance seeds (30-90 minutes each) that the weekly maintenance seed planner
 can promote into individual issues. It is a living document — update it as releases ship.
 
-Last refreshed: **2026-11-18** (DOT-3756 — S-4 implementation and S-5/S-6 completion evidence).
+Last refreshed: **2026-11-20** (DOT-4016 — S-7 development dependency audit triage).
 
 ## Project goal
 
@@ -54,9 +54,8 @@ do not intercept non-startup session reasons unless the user explicitly opts in.
 
 The W41 snapshot is superseded. S-4's implementation is ready in PR #75 (review
 pending); S-5 is complete in PRs #35 and #39; S-6 is complete in PRs #41 and #42.
-The remaining bounded maintenance candidate is:
-
-1. **S-7** — DevDependency audit triage.
+S-7's development dependency audit triage is complete (DOT-4016): the current
+lockfile has no npm audit findings, so no dependency changes were needed.
 
 S-4/S-5/S-6 remain in the seed sections below as completed evidence, not active
 candidates. No release action is part of this roadmap refresh.
@@ -66,7 +65,7 @@ candidates. No release action is part of this roadmap refresh.
 Keep releases small and independently shippable. Each item below maps to one or more of the
 maintenance seeds in the next section.
 
-1. **Keep maintenance guardrails green (patch)** — triage devDependency audit noise (seed S-7).
+No pending short-term maintenance seed remains; S-7's clean audit result is recorded below.
 
 S-4/S-5/S-6 are completed or implementation-ready as recorded below. Beyond the next 1-2
 releases, candidate larger work (kept out of scope here, see non-goals):
@@ -90,6 +89,7 @@ The `/new` picker itself is now shipped behind an opt-in setting.
 | S-4 · `/startup-picker:about` status | Done · PR #75 (review pending) | Store path, recent count, explicit missing/unreadable status, and startup-only scope |
 | S-5 · Atomic recent-store write | Done · PR #35 and #39 (merged) | Atomic rename implementation and regression coverage |
 | S-6 · ROADMAP structure smoke guard | Done · PR #41 and #42 (merged) | Seed-heading/time-band guard and heading-boundary fix |
+| S-7 · DevDependency audit triage | Done · DOT-4016 | `npm ci` and `npm audit --json` on 2026-11-20 found 0 vulnerabilities; no lockfile changes or residual advisory risk |
 
 ## Maintenance seeds (30-90 minutes each)
 
@@ -158,9 +158,13 @@ Pick one, open an issue, and link it back here when started.
 
 ### S-7 · DevDependency audit triage (~30-60 min)
 
-- **Why**: `npm install` currently reports moderate/high vulnerabilities in transitive dev
-  dependencies. Unchecked drift makes it harder to spot regressions introduced by intentional
-  dependency bumps.
+- **Status**: Done — DOT-4016. The reported moderate/high findings were not present in the current
+  lockfile audit.
+- **Evidence**: On 2026-11-20, `npm ci` reported 0 vulnerabilities and `npm audit --json` reported
+  0 total (info 0, low 0, moderate 0, high 0, critical 0; npm 11.19.1). No dependency or lockfile
+  changes were needed; no residual advisory risk is being accepted.
+- **Why**: The prior audit report made dev-dependency drift a concern. Rechecking the current lockfile
+  found no actionable advisories, so forcing upgrades would add risk without addressing a finding.
 - **Scope**: Run `npm audit`, apply safe patch/minor updates where available, document any
   accepted residual risk in a short maintainer note (e.g. `docs/repository-settings.md` or
   CHANGELOG Unreleased). Do not force major upgrades that break `npm run ci`.
