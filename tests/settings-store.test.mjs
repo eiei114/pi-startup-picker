@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -87,6 +87,24 @@ test("savePickerSettings leaves no temp files behind", async () => {
 
 	const leftovers = (await readdir(join(path, ".."))).filter((name) => name.endsWith(".tmp"));
 	assert.deepEqual(leftovers, []);
+});
+
+test("savePickerSettings cleans up the temp file when the rename fails", async (t) => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-settings-"));
+	t.after(() => rm(dir, { recursive: true, force: true }));
+	const path = join(dir, "settings.json");
+	const sentinel = join(path, "sentinel.txt");
+	await mkdir(path);
+	await writeFile(sentinel, "keep me", "utf8");
+
+	await assert.rejects(settingsStore.savePickerSettings({ showOnNewSession: true }, path), {
+		syscall: "rename",
+	});
+
+	assert.equal((await stat(path)).isDirectory(), true);
+	assert.deepEqual(await readdir(path), ["sentinel.txt"]);
+	assert.equal(await readFile(sentinel, "utf8"), "keep me");
+	assert.deepEqual(await readdir(dir), ["settings.json"]);
 });
 
 test("normalizePickerSettings tolerates unknown shapes", () => {
