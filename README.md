@@ -31,7 +31,11 @@ On normal startup, the extension shows a searchable provider/model picker before
 - Surface recent provider/model combinations at the top so repeated launches are faster.
 - Fall back to the user's existing default provider/model when the startup picker is canceled or selection fails.
 - Keep the pre-picker current model on `/new` for every non-selection outcome, so `/new` always continues.
-- Persist recent combinations in a small global JSON file across launches, and only after a successful model switch.
+- Persist recent provider/model combinations across launches in a small global JSON file.
+  At normal startup, choosing the already-current model records it as recent without switching.
+  In the opt-in `/new` picker, choosing the already-current model leaves recents unchanged.
+  In either picker, choosing a different model records it only if the switch succeeds;
+  cancelling or a failed switch leaves recents unchanged.
 - Recover cleanly from malformed recent-store files by treating them as empty and rewriting on the next save.
 - Treat a missing, malformed or wrong-typed settings file as off without throwing, and never rewrite it on read.
 
