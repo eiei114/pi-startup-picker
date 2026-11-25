@@ -323,6 +323,33 @@ test("/new keeps the RPC select-dialog deferral path", async () => {
 	assert.deepEqual(harness.selectCalls.map((call) => call.title), ["Choose a provider", "Choose a model"]);
 });
 
+test("RPC /new keeps the current model when the model dialog is cancelled", async (t) => {
+	const gpt = createModel("openai", "gpt-5.4", "GPT-5.4");
+	const claude = createModel("anthropic", "claude-sonnet-4", "Claude Sonnet 4");
+	const harness = createHarness({
+		models: [gpt, claude],
+		selectAnswers: ["OPENAI (openai)", undefined],
+		currentModel: claude,
+	});
+	harness.ctx.mode = "rpc";
+	const custom = t.mock.fn(async () => undefined);
+	harness.ctx.ui.custom = custom;
+
+	const result = await runStartupPicker(harness.pi, { type: "session_start", reason: "new" }, harness.ctx, {
+		...harness.options,
+		loadSettings: async () => ({ showOnNewSession: true }),
+	});
+
+	assert.deepEqual(harness.selectCalls, [
+		{ title: "Choose a provider", options: ["ANTHROPIC (anthropic)", "OPENAI (openai)"] },
+		{ title: "Choose a model", options: ["GPT-5.4 (gpt-5.4)"] },
+	]);
+	assert.equal(custom.mock.callCount(), 0);
+	assert.deepEqual(result, { action: "kept-current", reason: "cancelled-provider-model" });
+	assert.deepEqual(harness.setModelCalls, []);
+	assert.deepEqual(harness.savedSelections, []);
+});
+
 test("startup picker skips when UI is unavailable", async () => {
 	const model = createModel("openai", "gpt-5.4", "GPT-5.4");
 	const harness = createHarness({ models: [model] });
