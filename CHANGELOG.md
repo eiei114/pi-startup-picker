@@ -11,6 +11,11 @@ This project follows semantic versioning.
 - `/startup-picker:about` now reports the recent-store path, stored-entry count, and startup-only
   scope; missing and unreadable stores are reported without throwing.
 
+### Fixed
+
+- Duplicate saved provider/model pairs no longer crowd out distinct recents. The first valid
+  entry and its label are kept in stored order.
+
 ## [0.4.0] - 2026-11-12
 
 ### Added

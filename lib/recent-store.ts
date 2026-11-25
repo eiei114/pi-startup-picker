@@ -23,21 +23,28 @@ export function getRecentStorePath(): string {
 export function normalizeRecentCombinations(input: unknown): RecentCombination[] {
 	if (!Array.isArray(input)) return [];
 
-	return input
-		.filter((item): item is RecentCombination => {
-			return (
-				item !== null &&
-				typeof item === "object" &&
-				typeof item.provider === "string" &&
-				typeof item.modelId === "string" &&
-				(item.modelName === undefined || typeof item.modelName === "string")
-			);
-		})
-		.map((item) => ({
-			provider: item.provider,
-			modelId: item.modelId,
-			modelName: item.modelName,
-		}));
+	const recents: RecentCombination[] = [];
+	const seenByProvider = new Map<string, Set<string>>();
+	for (const item of input) {
+		if (
+			item === null ||
+			typeof item !== "object" ||
+			typeof item.provider !== "string" ||
+			typeof item.modelId !== "string" ||
+			(item.modelName !== undefined && typeof item.modelName !== "string")
+		) continue;
+
+		const { provider, modelId, modelName } = item;
+		let seenModels = seenByProvider.get(provider);
+		if (!seenModels) {
+			seenModels = new Set<string>();
+			seenByProvider.set(provider, seenModels);
+		}
+		if (seenModels.has(modelId)) continue;
+		seenModels.add(modelId);
+		recents.push({ provider, modelId, modelName });
+	}
+	return recents;
 }
 
 export function mergeRecentCombinations(
