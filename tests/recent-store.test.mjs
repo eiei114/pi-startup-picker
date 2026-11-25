@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -15,6 +15,44 @@ test("loadRecentCombinations returns empty list for malformed JSON and non-array
 
 	await writeFile(path, JSON.stringify({ provider: "openai" }), "utf8");
 	assert.deepEqual(await recentStore.loadRecentCombinations(path), []);
+});
+
+test("readRecentCombinations keeps the first valid label for each provider/model pair", async (t) => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	t.after(() => rm(dir, { recursive: true, force: true }));
+	const path = join(dir, "recents.json");
+	const first = { provider: "openai", modelId: "shared", modelName: "First label" };
+	const otherProvider = { provider: "anthropic", modelId: "shared", modelName: "Other provider" };
+	const otherModel = { provider: "openai", modelId: "different", modelName: "Other model" };
+	const content = JSON.stringify([
+		{ ...first, modelName: 123 },
+		first,
+		otherProvider,
+		{ ...first, modelName: "Later label" },
+		otherModel,
+	]);
+	await writeFile(path, content, "utf8");
+
+	assert.deepEqual(await recentStore.readRecentCombinations(path), {
+		status: "loaded",
+		recents: [first, otherProvider, otherModel],
+	});
+	assert.equal(await readFile(path, "utf8"), content);
+});
+
+test("saveRecentCombination fills all three slots despite duplicates in the existing file", async (t) => {
+	const dir = await mkdtemp(join(tmpdir(), "pi-startup-picker-recents-"));
+	t.after(() => rm(dir, { recursive: true, force: true }));
+	const path = join(dir, "recents.json");
+	const first = { provider: "openai", modelId: "gpt-5", modelName: "GPT-5" };
+	const second = { provider: "anthropic", modelId: "claude-sonnet-4", modelName: "Claude Sonnet 4" };
+	const older = { provider: "openai", modelId: "gpt-5.4", modelName: "GPT-5.4" };
+	const selection = { provider: "google", modelId: "gemini-2.5-pro", modelName: "Gemini 2.5 Pro" };
+	await writeFile(path, JSON.stringify([first, { ...first, modelName: "Later label" }, second, older]), "utf8");
+
+	const expected = [selection, first, second];
+	assert.deepEqual(await recentStore.saveRecentCombination(selection, path), expected);
+	assert.deepEqual(JSON.parse(await readFile(path, "utf8")), expected);
 });
 
 test("saveRecentCombination recovers a malformed store file on next save", async () => {
